@@ -1,6 +1,6 @@
 import { svg } from "lit";
 import type { DeviceDefinition } from "../../models/schema.js";
-import { TANK_DUAL_WIDEN, TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
+import { TANK_DUAL_WIDEN, TANK_STUB, TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
@@ -65,19 +65,26 @@ import { renderExtraDevice } from "./extra.js";
 
 // Horizontal tank geometry is designed for a width of 100 and scaled with the tank width.
 const TANK_BASE_WIDTH = 100;
-const TANK_LEFT = 14;
+const TANK_LEFT = TANK_STUB;
 const TANK_RIGHT = 86;
 const COIL_DEPTH = 32;
 const COIL_PITCH = 8;
+// Dual-coil tank: coils stand 1 mm off the wall and are 1.5 mm narrower (about 3.3 units per mm).
+const COIL_SHIFT = 3;
+const COIL_NARROW = 5;
 
 /** Heat exchanger coil from its supply port down to its return port. */
-function coilPath(y1: number, y2: number, wall: number, depth: number, dir: 1 | -1): string {
+function coilPath(y1: number, y2: number, wall: number, depth: number, dir: 1 | -1, shift = 0): string {
   const turns = Math.max(2, Math.floor((y2 - y1) / COIL_PITCH));
   const step = (y2 - y1) / turns;
+  // The coil starts at the wall, runs in by `shift` and zigzags from there.
+  const x = (offset: number): number => wall + dir * (shift + offset);
   let d = `M ${wall} ${y1}`;
+  if (shift) d += ` L ${x(0)} ${y1}`;
   for (let i = 1; i < turns; i++) {
-    d += ` L ${wall + dir * (i % 2 ? depth : 4)} ${y1 + i * step}`;
+    d += ` L ${x(i % 2 ? depth : 4)} ${y1 + i * step}`;
   }
+  if (shift) d += ` L ${x(0)} ${y2}`;
   return `${d} L ${wall} ${y2}`;
 }
 
@@ -101,9 +108,10 @@ function renderTank(
   const k = (def.width - widen) / TANK_BASE_WIDTH;
   const tankLeft = TANK_LEFT * k;
   const tankRight = def.width - (TANK_BASE_WIDTH - TANK_RIGHT) * k;
-  // Leave room for a short pipe stub between a bottom port and the body.
-  const bodyBottom = def.height - (edgePorts ? 10 : 4);
-  const top = 16;
+  // Top and bottom ports get a pipe stub as long as the side ones.
+  const bodyTop = edgePorts ? tankLeft : 10;
+  const bodyBottom = def.height - (edgePorts ? tankLeft : 4);
+  const top = bodyTop + 6;
   const bottom = bodyBottom - 6;
   const step = (bottom - top - 36) / (TANK_TEMPERATURE_SLOTS.length - 1);
   const sensors = TANK_TEMPERATURE_SLOTS.map((slot, i) => ({ y: top + 18 + i * step, state: slots.get(slot) }))
@@ -117,7 +125,8 @@ function renderTank(
     .map((c) => ({ y1: Math.min(c.ya, c.yb), y2: Math.max(c.ya, c.yb), onRight: c.onRight }));
   // One coil on each wall: they share the tank width instead of overlapping.
   const dual = coils.length === 2 && coils[0].onRight !== coils[1].onRight;
-  const coilDepth = dual ? (tankRight - tankLeft) / 2 - 5 : COIL_DEPTH * k;
+  const coilShift = dual ? COIL_SHIFT : 0;
+  const coilDepth = dual ? (tankRight - tankLeft) / 2 - 5 - COIL_SHIFT - COIL_NARROW : COIL_DEPTH * k;
   // Heaters sit between the sensor positions so they never cover a temperature label.
   const sensorY = (i: number): number => top + 18 + i * step;
   const heaterY = [sensorY(3) + step / 2, sensorY(1) + step / 2];
@@ -128,16 +137,16 @@ function renderTank(
         // Ports on the top or bottom edge connect to the tank body vertically.
         const vertical = p.position.y === 0 || p.position.y === def.height;
         const x2 = vertical ? p.position.x : p.position.x === 0 ? tankLeft : tankRight;
-        const y2 = vertical ? (p.position.y === 0 ? 10 : bodyBottom) : p.position.y;
+        const y2 = vertical ? (p.position.y === 0 ? bodyTop : bodyBottom) : p.position.y;
         return svg`<line x1="${p.position.x}" y1="${p.position.y}" x2="${x2}" y2="${y2}"
           stroke="var(--divider-color, #888)" stroke-width="2" />`;
       })}
-      <rect x="${tankLeft}" y="10" width="${tankRight - tankLeft}" height="${bodyBottom - 10}" rx="12"
+      <rect x="${tankLeft}" y="${bodyTop}" width="${tankRight - tankLeft}" height="${bodyBottom - bodyTop}" rx="12"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
       ${renderTemperatureBands(tankLeft + 3, tankRight - tankLeft - 6, top, bottom, sensors)}
       ${sensors.map((sensor) => svg`<circle cx="${tankLeft + 4}" cy="${sensor.y}" r="3" fill="${temperatureColor(sensor.state.numeric)}" />`)}
       ${coils.map(({ y1, y2, onRight }, i) => svg`
-        <path class="coil" d="${onRight ? coilPath(y1, y2, tankRight, coilDepth, -1) : coilPath(y1, y2, tankLeft, coilDepth, 1)}" fill="none" stroke="${SUPPLY_COLOR}"
+        <path class="coil" d="${onRight ? coilPath(y1, y2, tankRight, coilDepth, -1, coilShift) : coilPath(y1, y2, tankLeft, coilDepth, 1, coilShift)}" fill="none" stroke="${SUPPLY_COLOR}"
           stroke-width="2" stroke-linejoin="round" opacity="${i === 0 ? 0.85 : 0.65}" />
       `)}
       ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(tankRight, heaterY[i], 30 * k, heater))}

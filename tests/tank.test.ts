@@ -48,8 +48,8 @@ describe("DHW tank with two coils", () => {
     expect(preset.scale).toBe(1.2);
     const base = getNodeDefinition({ id: "t", type: "tank", position: at, addons: [{ type: "heat_exchanger" }, { type: "dhw" }] })!;
     const def = getNodeDefinition(node)!;
-    // 120 for the scaled tank plus 20 for the wider body.
-    expect(def.width).toBe(140);
+    // 120 for the scaled tank plus 40 for the wider body.
+    expect(def.width).toBe(160);
     expect(def.height).toBeGreaterThan(base.height);
   });
 
@@ -89,6 +89,17 @@ describe("DHW tank with two coils", () => {
     expect(def.width - port("hot_out2").position.x).toBeGreaterThan(17 + 12);
     expect(port("hot_out").position.x).toBe(def.width - port("hot_out2").position.x);
     expect(port("return_in").position.x).toBe(port("hot_out2").position.x);
+  });
+
+  it("grows 20 taller and keeps the port stubs as long as the side ones", () => {
+    const plain = getNodeDefinition({ ...node, variant: undefined })!;
+    const def = getNodeDefinition(node)!;
+    const stub = 14 * 1.2;
+    // Body at least 20 taller than the plain tank body; top and bottom stubs take extra room.
+    expect(def.height - 2 * stub).toBeGreaterThanOrEqual(plain.height - 20 + 20 - 5);
+    expect(def.height % 10).toBe(0);
+    expect(def.ports.find((p) => p.id === "hot_out")!.position.y).toBe(0);
+    expect(def.ports.find((p) => p.id === "return_in")!.position.y).toBe(def.height);
   });
 
   it("never stacks two ports on the same spot", () => {

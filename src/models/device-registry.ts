@@ -89,8 +89,12 @@ function tankPortIds(node: SchemaNode): Set<string> {
 }
 
 export const TANK_DUAL_COIL = "dual_coil";
-/** The dual-coil body is this much wider than the plain tank (10 on each side) so the top ports sit on its flat edge. */
-export const TANK_DUAL_WIDEN = 20;
+/** Length of the pipe stub between a port and the tank body at a 100 wide tank; scales with the tank. */
+export const TANK_STUB = 14;
+/** The dual-coil body is this much wider than the plain tank (20 on each side) so the top ports sit on its flat edge. */
+export const TANK_DUAL_WIDEN = 40;
+/** ... and this much taller (10 at the top and bottom), on top of the longer stubs. */
+export const TANK_DUAL_EXTEND = 20;
 const COLD_PORTS = new Set(["coil_out", "coil2_in", "return_in"]);
 
 /**
@@ -109,8 +113,8 @@ function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDef
   });
   const upper = snapPort(height * TANK_PORT_TOP);
   const lower = snapPort(height * (TANK_PORT_TOP + TANK_PORT_SPAN));
-  // Top and bottom ports stand 20 from the node edge: 10 for the wider body, 10 further towards the middle.
-  const inset = snapPort((width - TANK_DUAL_WIDEN) * 0.2) + TANK_DUAL_WIDEN;
+  // Top and bottom ports keep their distance from the body edge: 20 beyond the stub plus a fifth of the plain width.
+  const inset = snapPort((width - TANK_DUAL_WIDEN) * 0.2) + 20;
   const left = inset;
   const right = width - inset;
   const layout: [string, number, number][] = [
@@ -174,7 +178,12 @@ export const TANK: DeviceDefinition = {
     // A scaled tank stays on the port grid so pipes between ports can run straight.
     const baseWidth = scale === 1 ? TANK_WIDTH : snapPort(TANK_WIDTH * scale);
     const width = baseWidth + (node.variant === TANK_DUAL_COIL ? TANK_DUAL_WIDEN : 0);
-    const height = scale === 1 ? tankHeight(node.volume) : snapPort(tankHeight(node.volume) * scale);
+    const plainHeight = scale === 1 ? tankHeight(node.volume) : snapPort(tankHeight(node.volume) * scale);
+    // Dual-coil: body 20 taller plus a side-stub-long pipe at the top and bottom, kept on the port grid.
+    const height =
+      node.variant === TANK_DUAL_COIL
+        ? snapPort(plainHeight + TANK_DUAL_EXTEND + 2 * TANK_STUB * (baseWidth / TANK_WIDTH))
+        : plainHeight;
     const ids = tankPortIds(node);
     return {
       ...TANK,
