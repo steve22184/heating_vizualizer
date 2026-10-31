@@ -89,6 +89,9 @@ function tankPortIds(node: SchemaNode): Set<string> {
 }
 
 export const TANK_DUAL_COIL = "dual_coil";
+/** The dual-coil body is this much wider than the plain tank (10 on each side) so the top ports sit on its flat edge. */
+export const TANK_DUAL_WIDEN = 20;
+const COLD_PORTS = new Set(["coil_out", "coil2_in", "return_in"]);
 
 /**
  * Dual-coil layout: the left coil is the heating coil (supply at the top, return at the bottom); the right
@@ -96,16 +99,20 @@ export const TANK_DUAL_COIL = "dual_coil";
  * Tank outlets sit on the top edge, the heating outlet in the middle of the right wall, the return at the bottom edge.
  */
 function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDefinition[] {
+  // Colors follow the medium: heating coil supply red, return blue; the right coil takes cold water in, gives hot water out.
   const port = (id: string, x: number, y: number): PortDefinition => ({
     id,
     labelKey: `devices.tank.ports.${id}`,
     kind: TANK_OUTLETS.has(id) ? "outlet" : "inlet",
+    tone: COLD_PORTS.has(id) ? "cold" : "hot",
     position: { x, y },
   });
   const upper = snapPort(height * TANK_PORT_TOP);
   const lower = snapPort(height * (TANK_PORT_TOP + TANK_PORT_SPAN));
-  const left = snapPort(width * 0.2);
-  const right = snapPort(width * 0.8);
+  // Top and bottom ports stand 20 from the node edge: 10 for the wider body, 10 further towards the middle.
+  const inset = snapPort((width - TANK_DUAL_WIDEN) * 0.2) + TANK_DUAL_WIDEN;
+  const left = inset;
+  const right = width - inset;
   const layout: [string, number, number][] = [
     ["hot_out", left, 0],
     ["hot_out2", right, 0],
@@ -165,7 +172,8 @@ export const TANK: DeviceDefinition = {
   resolve: (node) => {
     const scale = tankScale(node);
     // A scaled tank stays on the port grid so pipes between ports can run straight.
-    const width = scale === 1 ? TANK_WIDTH : snapPort(TANK_WIDTH * scale);
+    const baseWidth = scale === 1 ? TANK_WIDTH : snapPort(TANK_WIDTH * scale);
+    const width = baseWidth + (node.variant === TANK_DUAL_COIL ? TANK_DUAL_WIDEN : 0);
     const height = scale === 1 ? tankHeight(node.volume) : snapPort(tankHeight(node.volume) * scale);
     const ids = tankPortIds(node);
     return {

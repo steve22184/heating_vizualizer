@@ -48,7 +48,8 @@ describe("DHW tank with two coils", () => {
     expect(preset.scale).toBe(1.2);
     const base = getNodeDefinition({ id: "t", type: "tank", position: at, addons: [{ type: "heat_exchanger" }, { type: "dhw" }] })!;
     const def = getNodeDefinition(node)!;
-    expect(def.width).toBe(120);
+    // 120 for the scaled tank plus 20 for the wider body.
+    expect(def.width).toBe(140);
     expect(def.height).toBeGreaterThan(base.height);
   });
 
@@ -73,6 +74,21 @@ describe("DHW tank with two coils", () => {
     expect(port("return_in").position.y).toBe(def.height);
     expect(port("return_in").kind).toBe("inlet");
     expect(def.ports.find((p) => p.id === "cold_in")).toBeUndefined();
+  });
+
+  it("colors the left coil red on top and blue at the bottom, ports on the flat top edge, bottom port clear of the body", () => {
+    const def = getNodeDefinition(node)!;
+    const port = (id: string) => def.ports.find((p) => p.id === id)!;
+    expect(port("coil_in").tone).toBe("hot");
+    expect(port("coil_out").tone).toBe("cold");
+    expect(port("coil2_in").tone).toBe("cold");
+    expect(port("coil2_out").tone).toBe("hot");
+    expect(port("return_in").tone).toBe("cold");
+    // Body is 17 from each edge before widening (14 * 1.2); the rounded corner takes 12 more.
+    expect(port("hot_out").position.x).toBeGreaterThan(17 + 12);
+    expect(def.width - port("hot_out2").position.x).toBeGreaterThan(17 + 12);
+    expect(port("hot_out").position.x).toBe(def.width - port("hot_out2").position.x);
+    expect(port("return_in").position.x).toBe(port("hot_out2").position.x);
   });
 
   it("never stacks two ports on the same spot", () => {

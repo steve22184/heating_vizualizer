@@ -44,7 +44,15 @@ const PORT_MEDIA: Record<string, Record<string, Medium>> = {
 
 const LOOP_PORT = /^loop_(\d+)_(in|out)$/;
 
+/** Dual-coil tank: the second coil heats domestic water flow-through; its tank outlets carry hot water. */
+const DUAL_COIL_MEDIA: Record<string, Medium> = {
+  coil2_in: "cold_water",
+  coil2_out: "hot_water",
+  hot_out2: "hot_water",
+};
+
 function portMedium(node: SchemaNode, portId: string): Medium | undefined {
+  if (node.type === "tank" && node.variant === "dual_coil" && DUAL_COIL_MEDIA[portId]) return DUAL_COIL_MEDIA[portId];
   if (node.type === "manifold") {
     const loop = LOOP_PORT.exec(portId);
     if (loop) return loop[2] === "out" ? "supply" : "return";

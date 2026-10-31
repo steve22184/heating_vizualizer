@@ -148,7 +148,7 @@ export function renderPorts(def: DeviceDefinition, t: Translator): SvgResult[] {
       data-port-id="${port.id}"
       cx="${port.position.x}" cy="${port.position.y}" r="5"
       fill="${CARD_FILL}"
-      stroke="${port.kind === "inlet" ? "#4fc3f7" : "#ff8a65"}"
+      stroke="${(port.tone ?? (port.kind === "inlet" ? "cold" : "hot")) === "cold" ? "#4fc3f7" : "#ff8a65"}"
       stroke-width="2"
     ><title>${t.t(port.labelKey, ...(port.labelArgs ?? []))}</title></circle>
   `);

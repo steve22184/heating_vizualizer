@@ -11,6 +11,8 @@ export interface PortDefinition {
   /** Placeholder values for `labelKey`, e.g. the loop number. */
   labelArgs?: string[];
   kind: PortKind;
+  /** Port circle color: `hot` (red) or `cold` (blue) where it differs from the port kind. */
+  tone?: "hot" | "cold";
   /** Offset from node origin in device-local coordinates */
   position: { x: number; y: number };
 }

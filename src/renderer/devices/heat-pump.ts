@@ -1,6 +1,6 @@
 import { svg } from "lit";
 import type { DeviceDefinition } from "../../models/schema.js";
-import { TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
+import { TANK_DUAL_WIDEN, TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
@@ -95,11 +95,16 @@ function renderTank(
       ? "var(--primary-color, #03a9f4)"
       : "var(--divider-color, #888)";
   const strokeWidth = selected ? 2.5 : 1.5;
-  const k = def.width / TANK_BASE_WIDTH;
+  // The dual-coil tank has ports on its top and bottom edge and a body widened by TANK_DUAL_WIDEN.
+  const edgePorts = def.ports.some((p) => p.position.y === 0 || p.position.y === def.height);
+  const widen = edgePorts ? TANK_DUAL_WIDEN : 0;
+  const k = (def.width - widen) / TANK_BASE_WIDTH;
   const tankLeft = TANK_LEFT * k;
-  const tankRight = TANK_RIGHT * k;
+  const tankRight = def.width - (TANK_BASE_WIDTH - TANK_RIGHT) * k;
+  // Leave room for a short pipe stub between a bottom port and the body.
+  const bodyBottom = def.height - (edgePorts ? 10 : 4);
   const top = 16;
-  const bottom = def.height - 10;
+  const bottom = bodyBottom - 6;
   const step = (bottom - top - 36) / (TANK_TEMPERATURE_SLOTS.length - 1);
   const sensors = TANK_TEMPERATURE_SLOTS.map((slot, i) => ({ y: top + 18 + i * step, state: slots.get(slot) }))
     .filter((s): s is { y: number; state: NodeVisualState } => s.state !== undefined);
@@ -123,11 +128,11 @@ function renderTank(
         // Ports on the top or bottom edge connect to the tank body vertically.
         const vertical = p.position.y === 0 || p.position.y === def.height;
         const x2 = vertical ? p.position.x : p.position.x === 0 ? tankLeft : tankRight;
-        const y2 = vertical ? (p.position.y === 0 ? 10 : def.height - 4) : p.position.y;
+        const y2 = vertical ? (p.position.y === 0 ? 10 : bodyBottom) : p.position.y;
         return svg`<line x1="${p.position.x}" y1="${p.position.y}" x2="${x2}" y2="${y2}"
           stroke="var(--divider-color, #888)" stroke-width="2" />`;
       })}
-      <rect x="${tankLeft}" y="10" width="${tankRight - tankLeft}" height="${def.height - 14}" rx="12"
+      <rect x="${tankLeft}" y="10" width="${tankRight - tankLeft}" height="${bodyBottom - 10}" rx="12"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
       ${renderTemperatureBands(tankLeft + 3, tankRight - tankLeft - 6, top, bottom, sensors)}
       ${sensors.map((sensor) => svg`<circle cx="${tankLeft + 4}" cy="${sensor.y}" r="3" fill="${temperatureColor(sensor.state.numeric)}" />`)}
@@ -136,7 +141,7 @@ function renderTank(
           stroke-width="2" stroke-linejoin="round" opacity="${i === 0 ? 0.85 : 0.65}" />
       `)}
       ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(tankRight, heaterY[i], 30 * k, heater))}
-      ${sensors.map((sensor) => renderValueLabel(58 * k, sensor.y + 4, sensor.state, true))}
+      ${sensors.map((sensor) => renderValueLabel((tankLeft + tankRight) / 2 + 8 * k, sensor.y + 4, sensor.state, true))}
       ${renderPorts(def, t)}
     </g>
   `;
