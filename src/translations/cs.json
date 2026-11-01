@@ -2,14 +2,14 @@
   "devices": {
     "heat_pump": {
       "name": "Tepelné čerpadlo",
+      "name_v2": "Tepelné čerpadlo v2 (štvorcové)",
       "ports": {
         "cold_in": "Vratka topné vody",
         "hot_out": "Výstup topné vody"
       },
       "variants": {
         "monoblock": "Monoblok",
-        "split": "Split (venkovní + vnitřní jednotka)",
-        "v2": "Štvorcový v2 (150 × 150)"
+        "split": "Split (venkovní + vnitřní jednotka)"
       }
     },
     "valve_3way": {

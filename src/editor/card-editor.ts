@@ -4,6 +4,7 @@ import type { HomeAssistant, LovelaceCardEditor } from "../types/home-assistant.
 import { ADDON_TYPES, addonLimit, type AddonSpec, type AddonType } from "../models/addons.js";
 import {
   DEVICE_PRESETS,
+  HEAT_PUMP_V2,
   getDeviceDefinition,
   getNodeDefinition,
   getPreset,
@@ -715,7 +716,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           .value="${node.name}"
           @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { name: asText(ev) })}"
         ></hv-field>
-        ${def?.variants
+        ${def?.variants && node.variant !== HEAT_PUMP_V2
           ? html`<hv-field
               kind="select"
               .label="${t.t("editor.variant")}"

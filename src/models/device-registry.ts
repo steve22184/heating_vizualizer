@@ -448,8 +448,8 @@ export const HEAT_PUMP: DeviceDefinition = {
   labelKey: "devices.heat_pump.name",
   width: 170,
   height: 120,
-  // monoblock/split only change the detail drawing; v2 is the square housing with mirrored connections.
-  variants: ["monoblock", "split", HEAT_PUMP_V2],
+  // Only changes the detail drawing: one housing, or outdoor and indoor unit.
+  variants: ["monoblock", "split"],
   resolve: (node) => (node.variant === HEAT_PUMP_V2 ? heatPumpV2Definition() : HEAT_PUMP),
   ports: [
     {
@@ -760,9 +760,16 @@ const TANK_PRESETS: DevicePreset[] = [
   },
 ];
 
-export const DEVICE_PRESETS: DevicePreset[] = ALL_DEVICES.flatMap((d) =>
-  d.type === TANK.type ? TANK_PRESETS : [{ id: d.type, type: d.type, labelKey: d.labelKey }]
-);
+const HEAT_PUMP_PRESETS: DevicePreset[] = [
+  { id: HEAT_PUMP.type, type: HEAT_PUMP.type, labelKey: "devices.heat_pump.name" },
+  { id: "heat_pump_v2", type: HEAT_PUMP.type, labelKey: "devices.heat_pump.name_v2", variant: HEAT_PUMP_V2 },
+];
+
+export const DEVICE_PRESETS: DevicePreset[] = ALL_DEVICES.flatMap((d) => {
+  if (d.type === TANK.type) return TANK_PRESETS;
+  if (d.type === HEAT_PUMP.type) return HEAT_PUMP_PRESETS;
+  return [{ id: d.type, type: d.type, labelKey: d.labelKey }];
+});
 
 export function getPreset(id: string): DevicePreset | undefined {
   return DEVICE_PRESETS.find((p) => p.id === id);

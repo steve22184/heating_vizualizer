@@ -24,3 +24,14 @@ describe("heat pump", () => {
     expect(ys(right)).toEqual([40, 90]);
   });
 });
+
+describe("heat pump presets", () => {
+  it("offers the square v2 as its own device, with the original heat pump unchanged", async () => {
+    const { getPreset, DEVICE_PRESETS } = await import("../src/models/device-registry.js");
+    expect(DEVICE_PRESETS.filter((p) => p.type === "heat_pump").map((p) => p.id)).toEqual(["heat_pump", "heat_pump_v2"]);
+    expect(getPreset("heat_pump_v2")?.variant).toBe("v2");
+    const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at, variant: "v2" } as SchemaNode)!;
+    expect(def.width).toBe(150);
+    expect(getNodeDefinition({ id: "h", type: "heat_pump", position: at } as SchemaNode)!.width).toBe(170);
+  });
+});

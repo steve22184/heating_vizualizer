@@ -2,14 +2,14 @@
   "devices": {
     "heat_pump": {
       "name": "Heat pump",
+      "name_v2": "Heat pump v2 (square)",
       "ports": {
         "cold_in": "Heating water return",
         "hot_out": "Heating water out"
       },
       "variants": {
         "monoblock": "Monoblock",
-        "split": "Split (outdoor + indoor unit)",
-        "v2": "Square v2 (150 × 150)"
+        "split": "Split (outdoor + indoor unit)"
       }
     },
     "valve_3way": {
