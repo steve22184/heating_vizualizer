@@ -6,6 +6,7 @@ import type { NodeVisualState } from "../../utils/entity.js";
 import {
   DEFROST_COLOR,
   HEATER_ACTIVE_COLOR,
+  HOT_WATER_COLOR,
   RETURN_COLOR,
   SUPPLY_COLOR,
   addonStates,
@@ -236,9 +237,9 @@ function renderThermostaticValve(def: DeviceDefinition, t: Translator, selected:
   const strokeWidth = selected ? 2.5 : 1.5;
   return svg`
     <g class="device device-thermostatic-valve">
-      <line x1="0" y1="70" x2="22" y2="70" stroke="${SUPPLY_COLOR}" stroke-width="3" />
+      <line x1="0" y1="70" x2="22" y2="70" stroke="${HOT_WATER_COLOR}" stroke-width="3" />
       <line x1="50" y1="96" x2="50" y2="${def.height}" stroke="${RETURN_COLOR}" stroke-width="3" />
-      <line x1="78" y1="70" x2="${def.width}" y2="70" stroke="${SUPPLY_COLOR}" stroke-width="3" />
+      <line x1="78" y1="70" x2="${def.width}" y2="70" stroke="${HOT_WATER_COLOR}" stroke-width="3" />
       <path d="M 22 56 L 50 70 L 22 84 Z M 78 56 L 50 70 L 78 84 Z M 36 98 L 50 70 L 64 98 Z"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}"
         stroke-linejoin="round" />

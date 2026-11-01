@@ -108,6 +108,8 @@ export function renderTemperatureBands(
 
 export const SUPPLY_COLOR = "#ef5350";
 export const RETURN_COLOR = "#42a5f5";
+/** Domestic hot water, same colour as the hot water pipes. */
+export const HOT_WATER_COLOR = "#ffa726";
 export const ACTIVE_COLOR = "#4caf50";
 export const HEATER_ACTIVE_COLOR = "#ff7043";
 /** Off heater: light grey, clearly visible on the dark card. */
