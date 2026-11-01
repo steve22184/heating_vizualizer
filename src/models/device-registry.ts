@@ -428,8 +428,9 @@ export const HEAT_PUMP_VALUE_SLOTS = [
 export const HEAT_PUMP: DeviceDefinition = {
   type: "heat_pump",
   labelKey: "devices.heat_pump.name",
-  width: 170,
-  height: 120,
+  // Square housing: the fan sits in the middle.
+  width: 150,
+  height: 150,
   // Only changes the detail drawing: one housing, or outdoor and indoor unit.
   variants: ["monoblock", "split"],
   ports: [
@@ -437,13 +438,26 @@ export const HEAT_PUMP: DeviceDefinition = {
       id: "hot_out",
       labelKey: "devices.heat_pump.ports.hot_out",
       kind: "outlet",
-      position: { x: 170, y: 40 },
+      position: { x: 150, y: 40 },
     },
     {
       id: "cold_in",
       labelKey: "devices.heat_pump.ports.cold_in",
       kind: "inlet",
-      position: { x: 170, y: 90 },
+      position: { x: 150, y: 90 },
+    },
+    // Mirrored connections on the left side, same medium as the right ones.
+    {
+      id: "hot_out_left",
+      labelKey: "devices.heat_pump.ports.hot_out",
+      kind: "outlet",
+      position: { x: 0, y: 40 },
+    },
+    {
+      id: "cold_in_left",
+      labelKey: "devices.heat_pump.ports.cold_in",
+      kind: "inlet",
+      position: { x: 0, y: 90 },
     },
   ],
   addons: [
