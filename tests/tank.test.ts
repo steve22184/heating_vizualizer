@@ -67,8 +67,8 @@ describe("DHW tank with two coils", () => {
     expect(port("coil2_out").kind).toBe("outlet");
     // Tank outlets on top, heating outlet in the middle of the right wall, return at the bottom.
     expect(port("hot_out").position.y).toBe(0);
-    expect(port("hot_out2").position.y).toBe(0);
-    expect(port("hot_out").position.x).toBeLessThan(port("hot_out2").position.x);
+    expect(port("coil2_out").position.y).toBe(0);
+    expect(port("hot_out").position.x).toBeLessThan(port("coil2_out").position.x);
     expect([port("hot_out").kind, port("hot_out2").kind, port("supply_out").kind]).toEqual(["outlet", "outlet", "outlet"]);
     expect(port("supply_out").position.x).toBe(def.width);
     expect(port("return_in").position.y).toBe(def.height);
@@ -86,9 +86,9 @@ describe("DHW tank with two coils", () => {
     expect(port("return_in").tone).toBe("cold");
     // Body is 17 from each edge before widening (14 * 1.2); the rounded corner takes 12 more.
     expect(port("hot_out").position.x).toBeGreaterThan(17 + 12);
-    expect(def.width - port("hot_out2").position.x).toBeGreaterThan(17 + 12);
-    expect(port("hot_out").position.x).toBe(def.width - port("hot_out2").position.x);
-    expect(port("return_in").position.x).toBe(port("hot_out2").position.x);
+    expect(def.width - port("coil2_out").position.x).toBeGreaterThan(17 + 12);
+    expect(port("hot_out").position.x).toBe(def.width - port("coil2_out").position.x);
+    expect(port("return_in").position.x).toBe(port("coil2_out").position.x);
   });
 
   it("grows 20 taller and keeps the port stubs as long as the side ones", () => {

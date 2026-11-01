@@ -119,12 +119,12 @@ function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDef
   const right = width - inset;
   const layout: [string, number, number][] = [
     ["hot_out", left, 0],
-    ["hot_out2", right, 0],
+    ["coil2_out", right, 0],
     ["coil_in", 0, upper],
     ["source_in", 0, snapPort(height * 0.4)],
     ["source_out", 0, snapPort(height * 0.6)],
     ["coil_out", 0, lower],
-    ["coil2_out", width, upper],
+    ["hot_out2", width, upper],
     ["supply_out", width, snapPort(height * 0.5)],
     ["circulation_in", width, snapPort(height * 0.68)],
     ["coil2_in", width, lower],

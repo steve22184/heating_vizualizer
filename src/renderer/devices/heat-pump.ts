@@ -121,7 +121,8 @@ function renderTank(
     .filter((s): s is { y: number; state: NodeVisualState } => s.state !== undefined);
   const portY = (id: string): number | undefined => def.ports.find((p) => p.id === id)?.position.y;
   const portX = (id: string): number | undefined => def.ports.find((p) => p.id === id)?.position.x;
-  const coils = [["coil_in", "coil_out"], ["coil2_in", "coil2_out"]]
+  // The DHW coil's top end is level with the right-side outlet; its return leaves through the top-edge port.
+  const coils = [["coil_in", "coil_out"], ["coil2_in", "hot_out2"]]
     .map(([a, b]) => ({ ya: portY(a), yb: portY(b), onRight: portX(a) === def.width }))
     .filter((c): c is { ya: number; yb: number; onRight: boolean } => c.ya !== undefined && c.yb !== undefined)
     // The coil is drawn top to bottom whichever end is the supply.
@@ -158,6 +159,10 @@ function renderTank(
         <path class="coil" d="${onRight ? coilPath(y1, y2, tankRight, coilDepth, -1, coilShift) : coilPath(y1, y2, tankLeft, coilDepth, 1, coilShift)}" fill="none" stroke="${SUPPLY_COLOR}"
           stroke-width="2" stroke-linejoin="round" opacity="${i === 0 ? 0.85 : 0.65}" />
       `)}
+      ${dual && portX("coil2_out") !== undefined && portY("hot_out2") !== undefined
+        ? svg`<path class="coil-link" d="M ${portX("coil2_out")} ${bodyTop} V ${portY("hot_out2")} H ${tankRight}"
+            fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" />`
+        : svg``}
       ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(i === 0 ? tankRight + 4 * TANK_HEATER_SCALE : tankRight, heaterY[i], 30 * k * TANK_HEATER_SCALE, heater, TANK_HEATER_SCALE))}
       ${sensors.map((sensor) => renderValueLabel((tankLeft + tankRight) / 2 + 8 * k, sensor.y + 4, sensor.state, true))}
       ${renderPorts(def, t)}
