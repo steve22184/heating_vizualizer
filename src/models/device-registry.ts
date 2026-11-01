@@ -425,13 +425,32 @@ export const HEAT_PUMP_VALUE_SLOTS = [
   "cop",
 ];
 
+export const HEAT_PUMP_V2 = "v2";
+
+/** Square variant of the heat pump: 150 x 150, fan in the middle, connections on both sides. */
+function heatPumpV2Definition(): DeviceDefinition {
+  const size = 150;
+  return {
+    ...HEAT_PUMP,
+    width: size,
+    height: size,
+    ports: [
+      { id: "hot_out", labelKey: "devices.heat_pump.ports.hot_out", kind: "outlet", position: { x: size, y: 40 } },
+      { id: "cold_in", labelKey: "devices.heat_pump.ports.cold_in", kind: "inlet", position: { x: size, y: 90 } },
+      { id: "hot_out_left", labelKey: "devices.heat_pump.ports.hot_out", kind: "outlet", position: { x: 0, y: 40 } },
+      { id: "cold_in_left", labelKey: "devices.heat_pump.ports.cold_in", kind: "inlet", position: { x: 0, y: 90 } },
+    ],
+  };
+}
+
 export const HEAT_PUMP: DeviceDefinition = {
   type: "heat_pump",
   labelKey: "devices.heat_pump.name",
   width: 170,
   height: 120,
-  // Only changes the detail drawing: one housing, or outdoor and indoor unit.
-  variants: ["monoblock", "split"],
+  // monoblock/split only change the detail drawing; v2 is the square housing with mirrored connections.
+  variants: ["monoblock", "split", HEAT_PUMP_V2],
+  resolve: (node) => (node.variant === HEAT_PUMP_V2 ? heatPumpV2Definition() : HEAT_PUMP),
   ports: [
     {
       id: "hot_out",

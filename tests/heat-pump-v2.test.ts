@@ -1,0 +1,26 @@
+import { describe, expect, it } from "vitest";
+import { getNodeDefinition } from "../src/models/device-registry.js";
+import type { SchemaNode } from "../src/models/schema.js";
+
+const at = { x: 0, y: 0 };
+
+describe("heat pump", () => {
+  it("keeps the original housing and two connections by default", () => {
+    const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at } as SchemaNode)!;
+    expect([def.width, def.height]).toEqual([170, 120]);
+    expect(def.ports.map((p) => p.id)).toEqual(["hot_out", "cold_in"]);
+    expect(def.ports.every((p) => p.position.x === 170)).toBe(true);
+  });
+
+  it("v2 is square, with mirrored connections on both sides", () => {
+    const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at, variant: "v2" } as SchemaNode)!;
+    expect([def.width, def.height]).toEqual([150, 150]);
+    const left = def.ports.filter((p) => p.position.x === 0).map((p) => p.id);
+    const right = def.ports.filter((p) => p.position.x === 150).map((p) => p.id);
+    expect(left).toEqual(["hot_out_left", "cold_in_left"]);
+    expect(right).toEqual(["hot_out", "cold_in"]);
+    const ys = (side: string[]) => def.ports.filter((p) => side.includes(p.id)).map((p) => p.position.y);
+    expect(ys(left)).toEqual([40, 90]);
+    expect(ys(right)).toEqual([40, 90]);
+  });
+});
