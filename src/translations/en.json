@@ -3,8 +3,8 @@
     "ground_collector": {
       "name": "Ground collector",
       "ports": {
-        "cold_in": "Coolant out",
-        "hot_out": "Coolant in"
+        "cold_in": "Coolant in",
+        "hot_out": "Coolant out"
       }
     },
     "heat_pump": {

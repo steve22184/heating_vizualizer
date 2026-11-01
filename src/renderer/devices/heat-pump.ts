@@ -393,7 +393,7 @@ function renderMixingValve(
  * returning to the warm outlet along the top edge. The two connectors sit 20 apart on the right side.
  */
 function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: boolean): ReturnType<typeof svg> {
-  // Shape is drawn with the cold inlet below and mirrored, so the inlet can sit on top of the outlet.
+  // Warm outlet on top, cold inlet below.
   const shift = 7;
   const top = 16 + shift;
   const bottom = def.height - 16 + shift;
@@ -416,7 +416,7 @@ function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: b
   const color = selected ? "var(--primary-color, #03a9f4)" : "#42a5f5";
   return svg`
     <g class="device device-ground-collector">
-      <path d="${path.join(" ")}" transform="translate(0 ${def.height}) scale(1 -1)" fill="none" stroke="${color}" stroke-width="3"
+      <path d="${path.join(" ")}" fill="none" stroke="${color}" stroke-width="3"
         stroke-linejoin="round" stroke-linecap="round" />
       ${renderPorts(def, t)}
     </g>
