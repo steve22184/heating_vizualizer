@@ -19,8 +19,8 @@ describe("heat pump", () => {
     const right = def.ports.filter((p) => p.position.x === 170).map((p) => p.id);
     expect(left).toEqual(["v2_top_left", "v2_bottom_left"]);
     expect(right).toEqual(["v2_top", "v2_bottom"]);
-    expect(def.ports.find((p) => p.id === "v2_top")!.kind).toBe("inlet");
-    expect(def.ports.find((p) => p.id === "v2_bottom")!.kind).toBe("outlet");
+    expect(def.ports.find((p) => p.id === "v2_top")!.kind).toBe("outlet");
+    expect(def.ports.find((p) => p.id === "v2_bottom")!.kind).toBe("inlet");
     const ys = (side: string[]) => def.ports.filter((p) => side.includes(p.id)).map((p) => p.position.y);
     expect(ys(left)).toEqual([60, 110]);
     expect(ys(right)).toEqual([60, 110]);

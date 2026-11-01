@@ -431,8 +431,8 @@ export const HEAT_PUMP_V2 = "v2";
 function heatPumpV2Definition(): DeviceDefinition {
   const width = 170;
   const height = 170;
-  // Upper connectors are inlets, lower ones outlets, on both sides. The right side is the refrigerant
-  // circuit (hot gas out on top, liquid in below); the left side keeps the coolant labels.
+  // Left side: warm coolant comes in on top, cold goes back out below. Right side is the refrigerant
+  // circuit: hot gas goes out on top, liquid comes in below, so the kinds follow the labels.
   const coolantIn = "devices.heat_pump.ports.coolant_in";
   const coolantOut = "devices.heat_pump.ports.coolant_out";
   const hotGasOut = "devices.heat_pump.ports.hot_gas_coolant_out";
@@ -442,8 +442,8 @@ function heatPumpV2Definition(): DeviceDefinition {
     width,
     height,
     ports: [
-      { id: "v2_top", labelKey: hotGasOut, kind: "inlet", tone: "hot", position: { x: width, y: 60 } },
-      { id: "v2_bottom", labelKey: liquidIn, kind: "outlet", tone: "cold", position: { x: width, y: 110 } },
+      { id: "v2_top", labelKey: hotGasOut, kind: "outlet", tone: "hot", position: { x: width, y: 60 } },
+      { id: "v2_bottom", labelKey: liquidIn, kind: "inlet", tone: "cold", position: { x: width, y: 110 } },
       { id: "v2_top_left", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: 0, y: 60 } },
       { id: "v2_bottom_left", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: 0, y: 110 } },
     ],
