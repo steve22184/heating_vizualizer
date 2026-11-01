@@ -102,6 +102,12 @@ const COLD_PORTS = new Set(["coil_out", "coil2_in", "return_in"]);
  * coil heats domestic hot water flow-through (cold water in at the bottom, hot water out at the top).
  * Tank outlets sit on the top edge, the heating outlet in the middle of the right wall, the return at the bottom edge.
  */
+/** Y where the DHW coil's top end meets the right wall (its return is joined internally to the top outlet). */
+export function dualCoilTop(height: number): number {
+  return snapPort(height * TANK_PORT_TOP);
+}
+const TANK_OUTLET2_OFFSET = 20;
+
 function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDefinition[] {
   // Colors follow the medium: heating coil supply red, return blue; the right coil takes cold water in, gives hot water out.
   const port = (id: string, x: number, y: number): PortDefinition => ({
@@ -111,7 +117,7 @@ function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDef
     tone: COLD_PORTS.has(id) ? "cold" : "hot",
     position: { x, y },
   });
-  const upper = snapPort(height * TANK_PORT_TOP);
+  const upper = dualCoilTop(height);
   const lower = snapPort(height * (TANK_PORT_TOP + TANK_PORT_SPAN));
   // Top and bottom ports keep their distance from the body edge: 20 beyond the stub plus a fifth of the plain width.
   const inset = snapPort((width - TANK_DUAL_WIDEN) * 0.2) + 20;
@@ -124,7 +130,7 @@ function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDef
     ["source_in", 0, snapPort(height * 0.4)],
     ["source_out", 0, snapPort(height * 0.6)],
     ["coil_out", 0, lower],
-    ["hot_out2", width, upper],
+    ["hot_out2", width, upper - TANK_OUTLET2_OFFSET],
     ["supply_out", width, snapPort(height * 0.5)],
     ["circulation_in", width, snapPort(height * 0.68)],
     ["coil2_in", width, lower],

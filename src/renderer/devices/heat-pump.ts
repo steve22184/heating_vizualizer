@@ -1,6 +1,6 @@
 import { svg } from "lit";
 import type { DeviceDefinition } from "../../models/schema.js";
-import { TANK_DUAL_WIDEN, TANK_STUB, TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
+import { TANK_DUAL_WIDEN, TANK_STUB, TANK_TEMPERATURE_SLOTS, dualCoilTop } from "../../models/device-registry.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
@@ -72,16 +72,30 @@ const COIL_PITCH = 8;
 // Electric immersion heater in the tank is drawn 1.7 times its original size.
 const TANK_HEATER_SCALE = 1.7;
 const HEATER_LIFT = 5;
-// Dual-coil tank: coils stand 1 mm off the wall and are 1.5 mm narrower (about 3.3 units per mm).
-const COIL_SHIFT = 3;
-const COIL_NARROW = 5;
+// Coils stand about 2 mm off the wall, so their zigzags clear the wall line (about 3.3 units per mm).
+const COIL_SHIFT = 6;
 
 /** Heat exchanger coil from its supply port down to its return port. */
-function coilPath(y1: number, y2: number, wall: number, depth: number, dir: 1 | -1, shift = 0): string {
+function coilPath(
+  y1: number,
+  y2: number,
+  wall: number,
+  depth: number,
+  dir: 1 | -1,
+  shift = 0,
+  linkedX?: number
+): string {
   const turns = Math.max(2, Math.floor((y2 - y1) / COIL_PITCH));
   const step = (y2 - y1) / turns;
   // The coil starts at the wall, runs in by `shift` and zigzags from there.
   const x = (offset: number): number => wall + dir * (shift + offset);
+  if (linkedX !== undefined) {
+    // Top end joined straight to the outlet pipe: the coil starts directly under the pipe.
+    let d = `M ${linkedX} ${y1}`;
+    for (let i = 1; i < turns; i++) d += ` L ${x(i % 2 ? 4 : depth)} ${y1 + i * step}`;
+    if (shift) d += ` L ${x(0)} ${y2}`;
+    return `${d} L ${wall} ${y2}`;
+  }
   let d = `M ${wall} ${y1}`;
   if (shift) d += ` L ${x(0)} ${y1}`;
   for (let i = 1; i < turns; i++) {
@@ -122,15 +136,20 @@ function renderTank(
   const portY = (id: string): number | undefined => def.ports.find((p) => p.id === id)?.position.y;
   const portX = (id: string): number | undefined => def.ports.find((p) => p.id === id)?.position.x;
   // The DHW coil's top end is level with the right-side outlet; its return leaves through the top-edge port.
-  const coils = [["coil_in", "coil_out"], ["coil2_in", "hot_out2"]]
-    .map(([a, b]) => ({ ya: portY(a), yb: portY(b), onRight: portX(a) === def.width }))
-    .filter((c): c is { ya: number; yb: number; onRight: boolean } => c.ya !== undefined && c.yb !== undefined)
+  const coil2Top = dualCoilTop(def.height);
+  const coils = [
+    { a: "coil_in", yb: portY("coil_out") },
+    { a: "coil2_in", yb: coil2Top },
+  ]
+    .map(({ a, yb }) => ({ ya: portY(a), yb, onRight: portX(a) === def.width, linked: a === "coil2_in" }))
+    .filter((c): c is { ya: number; yb: number; onRight: boolean; linked: boolean } => c.ya !== undefined && c.yb !== undefined)
     // The coil is drawn top to bottom whichever end is the supply.
-    .map((c) => ({ y1: Math.min(c.ya, c.yb), y2: Math.max(c.ya, c.yb), onRight: c.onRight }));
+    .map((c) => ({ y1: Math.min(c.ya, c.yb), y2: Math.max(c.ya, c.yb), onRight: c.onRight, linked: c.linked }));
   // One coil on each wall: they share the tank width instead of overlapping.
   const dual = coils.length === 2 && coils[0].onRight !== coils[1].onRight;
   const coilShift = dual ? COIL_SHIFT : 0;
-  const coilDepth = dual ? (tankRight - tankLeft) / 2 - 5 - COIL_SHIFT - COIL_NARROW : COIL_DEPTH * k;
+  // Both coils share the same width and inset from their walls.
+  const coilDepth = COIL_DEPTH * k;
   // Heaters sit between the sensor positions so they never cover a temperature label.
   const sensorY = (i: number): number => top + 18 + i * step;
   // Dual-coil tank: the first heater sits midway between the middle outlet and the lower right port.
@@ -155,13 +174,13 @@ function renderTank(
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
       ${renderTemperatureBands(tankLeft + 3, tankRight - tankLeft - 6, top, bottom, sensors)}
       ${sensors.map((sensor) => svg`<circle cx="${tankLeft + 4}" cy="${sensor.y}" r="3" fill="${temperatureColor(sensor.state.numeric)}" />`)}
-      ${coils.map(({ y1, y2, onRight }, i) => svg`
-        <path class="coil" d="${onRight ? coilPath(y1, y2, tankRight, coilDepth, -1, coilShift) : coilPath(y1, y2, tankLeft, coilDepth, 1, coilShift)}" fill="none" stroke="${SUPPLY_COLOR}"
-          stroke-width="2" stroke-linejoin="round" opacity="${i === 0 ? 0.85 : 0.65}" />
+      ${coils.map(({ y1, y2, onRight, linked }) => svg`
+        <path class="coil" d="${onRight ? coilPath(y1, y2, tankRight, coilDepth, -1, coilShift, linked ? portX("coil2_out") : undefined) : coilPath(y1, y2, tankLeft, coilDepth, 1, coilShift)}" fill="none" stroke="${SUPPLY_COLOR}"
+          stroke-width="2" stroke-linejoin="round" opacity="0.85" />
       `)}
-      ${dual && portX("coil2_out") !== undefined && portY("hot_out2") !== undefined
-        ? svg`<path class="coil-link" d="M ${portX("coil2_out")} ${bodyTop} V ${portY("hot_out2")} H ${tankRight}"
-            fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" />`
+      ${dual && portX("coil2_out") !== undefined
+        ? svg`<path class="coil-link" d="M ${portX("coil2_out")} ${bodyTop} V ${coil2Top}"
+            fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" opacity="0.85" />`
         : svg``}
       ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(i === 0 ? tankRight + 4 * TANK_HEATER_SCALE : tankRight, heaterY[i], 30 * k * TANK_HEATER_SCALE, heater, TANK_HEATER_SCALE))}
       ${sensors.map((sensor) => renderValueLabel((tankLeft + tankRight) / 2 + 8 * k, sensor.y + 4, sensor.state, true))}
