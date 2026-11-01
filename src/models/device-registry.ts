@@ -372,8 +372,8 @@ function switchingValveDefinition(mixing: boolean): DeviceDefinition {
     height: 110,
     variants: ["diverting", SWITCHING_VALVE_MIXING],
     ports: [
-      { id: "in", labelKey: "devices.switching_valve.ports.in", kind: abKind, tone: "hot", position: { x: 0, y: 70 } },
-      { id: "out_a", labelKey: "devices.switching_valve.ports.out_a", kind: circuitKind, tone: "hot", position: { x: 100, y: 70 } },
+      { id: "in", labelKey: "devices.switching_valve.ports.in", kind: abKind, tone: "hot", position: { x: 100, y: 70 } },
+      { id: "out_a", labelKey: "devices.switching_valve.ports.out_a", kind: circuitKind, tone: "hot", position: { x: 0, y: 70 } },
       { id: "out_b", labelKey: "devices.switching_valve.ports.out_b", kind: circuitKind, tone: "hot", position: { x: 50, y: 110 } },
     ],
     addons: [values(1), ALARM],
