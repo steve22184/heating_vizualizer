@@ -69,6 +69,8 @@ const TANK_LEFT = TANK_STUB;
 const TANK_RIGHT = 86;
 const COIL_DEPTH = 32;
 const COIL_PITCH = 8;
+// Electric immersion heater in the tank is drawn 1.7 times its original size.
+const TANK_HEATER_SCALE = 1.7;
 // Dual-coil tank: coils stand 1 mm off the wall and are 1.5 mm narrower (about 3.3 units per mm).
 const COIL_SHIFT = 3;
 const COIL_NARROW = 5;
@@ -129,7 +131,12 @@ function renderTank(
   const coilDepth = dual ? (tankRight - tankLeft) / 2 - 5 - COIL_SHIFT - COIL_NARROW : COIL_DEPTH * k;
   // Heaters sit between the sensor positions so they never cover a temperature label.
   const sensorY = (i: number): number => top + 18 + i * step;
-  const heaterY = [sensorY(3) + step / 2, sensorY(1) + step / 2];
+  // Dual-coil tank: the first heater sits midway between the middle outlet and the lower right port.
+  const midOutlet = portY("supply_out");
+  const lowerRight = portY("coil2_in");
+  const firstHeater =
+    dual && midOutlet !== undefined && lowerRight !== undefined ? (midOutlet + lowerRight) / 2 : sensorY(3) + step / 2;
+  const heaterY = [firstHeater, sensorY(1) + step / 2];
 
   return svg`
     <g class="device device-tank">
@@ -149,7 +156,7 @@ function renderTank(
         <path class="coil" d="${onRight ? coilPath(y1, y2, tankRight, coilDepth, -1, coilShift) : coilPath(y1, y2, tankLeft, coilDepth, 1, coilShift)}" fill="none" stroke="${SUPPLY_COLOR}"
           stroke-width="2" stroke-linejoin="round" opacity="${i === 0 ? 0.85 : 0.65}" />
       `)}
-      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(tankRight, heaterY[i], 30 * k, heater))}
+      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(tankRight, heaterY[i], 30 * k * TANK_HEATER_SCALE, heater, TANK_HEATER_SCALE))}
       ${sensors.map((sensor) => renderValueLabel((tankLeft + tankRight) / 2 + 8 * k, sensor.y + 4, sensor.state, true))}
       ${renderPorts(def, t)}
     </g>

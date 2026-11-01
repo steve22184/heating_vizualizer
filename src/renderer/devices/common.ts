@@ -73,13 +73,19 @@ export function activeFromAddons(addons: ResolvedAddon[]): boolean {
 }
 
 /** Immersion heater entering through the right wall at `wallX`, glowing while active. */
-export function renderHeatingRod(wallX: number, y: number, length: number, heater: NodeVisualState): SvgResult {
-  const color = heater.active ? HEATER_ACTIVE_COLOR : NEUTRAL_STROKE;
+export function renderHeatingRod(
+  wallX: number,
+  y: number,
+  length: number,
+  heater: NodeVisualState,
+  scale = 1
+): SvgResult {
+  const color = heater.active ? HEATER_ACTIVE_COLOR : HEATER_INACTIVE_COLOR;
   return svg`
     <g class="heating-rod ${heater.active ? "active" : ""}">
       <title>${heater.label ?? ""}</title>
-      <rect x="${wallX - 4}" y="${y - 6}" width="8" height="12" rx="2" fill="${CARD_FILL}" stroke="${color}" stroke-width="1.5" />
-      ${renderHeaterCoil(wallX - 4 - length, y + 4, length, heater)}
+      <rect x="${wallX - 4 * scale}" y="${y - 6 * scale}" width="${8 * scale}" height="${12 * scale}" rx="2" fill="${CARD_FILL}" stroke="${color}" stroke-width="1.5" />
+      ${renderHeaterCoil(wallX - 4 * scale - length, y + 4 * scale, length, heater, 8 * scale)}
     </g>
   `;
 }
@@ -104,6 +110,8 @@ export const SUPPLY_COLOR = "#ef5350";
 export const RETURN_COLOR = "#42a5f5";
 export const ACTIVE_COLOR = "#4caf50";
 export const HEATER_ACTIVE_COLOR = "#ff7043";
+/** Off heater: light grey, clearly visible on the dark card. */
+export const HEATER_INACTIVE_COLOR = "#b0bec5";
 export const DEFROST_COLOR = "#4fc3f7";
 export const CARD_FILL = "var(--card-background-color, #1c1c1c)";
 export const NEUTRAL_STROKE = "var(--divider-color, #888)";
@@ -155,14 +163,14 @@ export function renderPorts(def: DeviceDefinition, t: Translator): SvgResult[] {
 }
 
 /** Zig-zag heating element; glows when the bound entity is active. */
-export function renderHeaterCoil(x: number, y: number, width: number, heater: NodeVisualState): SvgResult {
+export function renderHeaterCoil(x: number, y: number, width: number, heater: NodeVisualState, amp = 8): SvgResult {
   const steps = 6;
   const step = width / steps;
   let d = `M ${x} ${y}`;
   for (let i = 1; i <= steps; i++) {
-    d += ` L ${x + i * step} ${y + (i % 2 === 0 ? 0 : -8)}`;
+    d += ` L ${x + i * step} ${y + (i % 2 === 0 ? 0 : -amp)}`;
   }
-  const color = heater.active ? HEATER_ACTIVE_COLOR : NEUTRAL_STROKE;
+  const color = heater.active ? HEATER_ACTIVE_COLOR : HEATER_INACTIVE_COLOR;
   return svg`
     <path class="heater ${heater.active ? "active" : ""}" d="${d}" fill="none"
       stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
