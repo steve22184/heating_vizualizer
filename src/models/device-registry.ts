@@ -384,6 +384,20 @@ export const SWITCHING_VALVE: DeviceDefinition = {
   resolve: (node) => switchingValveDefinition(node.variant !== SWITCHING_VALVE_DIVERTING),
 };
 
+/** Manually set thermostatic mixing valve: no actuator, the outlet temperature is set with the knob. */
+export const THERMOSTATIC_VALVE: DeviceDefinition = {
+  type: "thermostatic_valve",
+  labelKey: "devices.thermostatic_valve.name",
+  width: 100,
+  height: 110,
+  ports: [
+    { id: "hot_in", labelKey: "devices.thermostatic_valve.ports.hot_in", kind: "inlet", tone: "hot", position: { x: 0, y: 70 } },
+    { id: "mixed_out", labelKey: "devices.thermostatic_valve.ports.mixed_out", kind: "outlet", tone: "hot", position: { x: 100, y: 70 } },
+    { id: "cold_in", labelKey: "devices.thermostatic_valve.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 50, y: 110 } },
+  ],
+  addons: [temperatures("mixed")],
+};
+
 export const MIXING_VALVE: DeviceDefinition = {
   type: "mixing_valve",
   labelKey: "devices.mixing_valve.name",
@@ -768,6 +782,7 @@ const ALL_DEVICES: DeviceDefinition[] = [
   VALVE_3WAY,
   MIXING_VALVE,
   SWITCHING_VALVE,
+  THERMOSTATIC_VALVE,
   ZONE_VALVE,
   CIRCULATION_PUMP,
   MANIFOLD,

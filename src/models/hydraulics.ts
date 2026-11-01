@@ -36,6 +36,7 @@ const PORT_MEDIA: Record<string, Record<string, Medium>> = {
   radiator: TERMINAL,
   fancoil: TERMINAL,
   mixing_valve: { hot_in: "supply", return_in: "return", mixed_out: "supply" },
+  thermostatic_valve: { hot_in: "hot_water", cold_in: "cold_water", mixed_out: "hot_water" },
   hydraulic_separator: FOUR_PORT,
   plate_heat_exchanger: FOUR_PORT,
   electric_heater: { out: "supply" },

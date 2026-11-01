@@ -23,6 +23,14 @@
         "split": "Split (venkovní + vnitřní jednotka)"
       }
     },
+    "thermostatic_valve": {
+      "name": "Termostatický ventil",
+      "ports": {
+        "hot_in": "Vstup teplé vody",
+        "cold_in": "Vstup studené vody",
+        "mixed_out": "Výstup směsné vody"
+      }
+    },
     "switching_valve": {
       "name": "Přepínací ventil",
       "ports": {

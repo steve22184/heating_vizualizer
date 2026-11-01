@@ -230,6 +230,26 @@ function renderManifold(
   `;
 }
 
+/** Manual thermostatic mixing valve: the mixing-valve body with a setting knob instead of an actuator. */
+function renderThermostaticValve(def: DeviceDefinition, t: Translator, selected: boolean): ReturnType<typeof svg> {
+  const stroke = selected ? "var(--primary-color, #03a9f4)" : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  return svg`
+    <g class="device device-thermostatic-valve">
+      <line x1="0" y1="70" x2="22" y2="70" stroke="${SUPPLY_COLOR}" stroke-width="3" />
+      <line x1="50" y1="96" x2="50" y2="${def.height}" stroke="${RETURN_COLOR}" stroke-width="3" />
+      <line x1="78" y1="70" x2="${def.width}" y2="70" stroke="${SUPPLY_COLOR}" stroke-width="3" />
+      <path d="M 22 56 L 50 70 L 22 84 Z M 78 56 L 50 70 L 78 84 Z M 36 98 L 50 70 L 64 98 Z"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}"
+        stroke-linejoin="round" />
+      <line x1="50" y1="36" x2="50" y2="70" stroke="${stroke}" stroke-width="2" />
+      <circle cx="50" cy="26" r="12" fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      <line x1="50" y1="26" x2="50" y2="17" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" />
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Switching valve drawn like the mixing valve; the active branch (A or B) is shown on the actuator. */
 function renderSwitchingValve(
   def: DeviceDefinition,
@@ -607,6 +627,8 @@ export function renderDeviceByType(
       return renderValve3Way(def, t, selected, state);
     case "switching_valve":
       return renderSwitchingValve(def, t, selected, state);
+    case "thermostatic_valve":
+      return renderThermostaticValve(def, t, selected);
     case "tank":
       return renderTank(def, t, selected, state, temperatureSlots(extras), heaterStates(extras));
     case "junction":
