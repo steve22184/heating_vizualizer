@@ -355,6 +355,36 @@ export const MANIFOLD: DeviceDefinition = {
     manifoldDefinition(Math.max(1, node.addons?.filter((a) => a.type === "loop").length ?? 0)),
 };
 
+/** Switching valve in mixing mode: A and B are inlets, the common AB port is the outlet. */
+export const SWITCHING_VALVE_MIXING = "mixing";
+
+/**
+ * Switching (diverter) valve drawn like the mixing valve. Default: the common AB port is the inlet and the flow
+ * goes to circuit A or B. Mixing variant: A and B are inlets, AB is the outlet.
+ */
+function switchingValveDefinition(mixing: boolean): DeviceDefinition {
+  const abKind = mixing ? "outlet" : "inlet";
+  const circuitKind = mixing ? "inlet" : "outlet";
+  return {
+    type: "switching_valve",
+    labelKey: "devices.switching_valve.name",
+    width: 100,
+    height: 110,
+    variants: ["diverting", SWITCHING_VALVE_MIXING],
+    ports: [
+      { id: "in", labelKey: "devices.switching_valve.ports.in", kind: abKind, tone: "hot", position: { x: 0, y: 70 } },
+      { id: "out_a", labelKey: "devices.switching_valve.ports.out_a", kind: circuitKind, tone: "hot", position: { x: 100, y: 70 } },
+      { id: "out_b", labelKey: "devices.switching_valve.ports.out_b", kind: circuitKind, tone: "hot", position: { x: 50, y: 110 } },
+    ],
+    addons: [values(1), ALARM],
+  };
+}
+
+export const SWITCHING_VALVE: DeviceDefinition = {
+  ...switchingValveDefinition(false),
+  resolve: (node) => switchingValveDefinition(node.variant === SWITCHING_VALVE_MIXING),
+};
+
 export const MIXING_VALVE: DeviceDefinition = {
   type: "mixing_valve",
   labelKey: "devices.mixing_valve.name",
@@ -738,6 +768,7 @@ const ALL_DEVICES: DeviceDefinition[] = [
   SAFETY_VALVE,
   VALVE_3WAY,
   MIXING_VALVE,
+  SWITCHING_VALVE,
   ZONE_VALVE,
   CIRCULATION_PUMP,
   MANIFOLD,

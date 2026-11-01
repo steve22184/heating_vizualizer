@@ -23,6 +23,18 @@
         "split": "Split (venkovní + vnitřní jednotka)"
       }
     },
+    "switching_valve": {
+      "name": "Přepínací ventil",
+      "ports": {
+        "in": "Společný (AB)",
+        "out_a": "Okruh A",
+        "out_b": "Okruh B"
+      },
+      "variants": {
+        "diverting": "Rozdělování (AB → A nebo B)",
+        "mixing": "Směšování (A nebo B → AB)"
+      }
+    },
     "valve_3way": {
       "name": "Třícestný ventil",
       "ports": {

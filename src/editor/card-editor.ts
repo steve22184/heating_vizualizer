@@ -117,7 +117,7 @@ function nodeFields(type: string): BindingField[] {
   if (valueDisplay === "only") return [VALUE_ENTITY, VALUE_ATTRIBUTE];
   if (valueDisplay === "with_state") return [STATE_ENTITY, ACTIVE_STATE, VALUE_ATTRIBUTE];
   if (type === "mixing_valve") return [{ ...ENTITY, label: "editor.actuator_entity" }, POSITION_ATTRIBUTE];
-  if (type === "valve_3way") {
+  if (type === "valve_3way" || type === "switching_valve") {
     return [
       ENTITY,
       ACTIVE_STATE,

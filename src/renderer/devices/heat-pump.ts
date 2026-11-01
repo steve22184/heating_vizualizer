@@ -230,6 +230,33 @@ function renderManifold(
   `;
 }
 
+/** Switching valve drawn like the mixing valve; the active branch (A or B) is shown on the actuator. */
+function renderSwitchingValve(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): ReturnType<typeof svg> {
+  const stroke = selected ? "var(--primary-color, #03a9f4)" : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  const branch = state.valveBranch === "a" ? "A" : state.valveBranch === "b" ? "B" : "—";
+  return svg`
+    <g class="device device-switching-valve">
+      <line x1="0" y1="70" x2="22" y2="70" stroke="${stroke}" stroke-width="3" />
+      <line x1="78" y1="70" x2="${def.width}" y2="70" stroke="${stroke}" stroke-width="3" />
+      <line x1="50" y1="96" x2="50" y2="${def.height}" stroke="${stroke}" stroke-width="3" />
+      <path d="M 22 56 L 50 70 L 22 84 Z M 78 56 L 50 70 L 78 84 Z M 36 98 L 50 70 L 64 98 Z"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}"
+        stroke-linejoin="round" />
+      <line x1="50" y1="36" x2="50" y2="70" stroke="${stroke}" stroke-width="2" />
+      <rect x="28" y="10" width="44" height="26" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      <text x="50" y="27" text-anchor="middle" class="device-value">${branch}</text>
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 function renderValve3Way(
   def: DeviceDefinition,
   t: Translator,
@@ -578,6 +605,8 @@ export function renderDeviceByType(
       return renderGroundCollector(def, t, selected);
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
+    case "switching_valve":
+      return renderSwitchingValve(def, t, selected, state);
     case "tank":
       return renderTank(def, t, selected, state, temperatureSlots(extras), heaterStates(extras));
     case "junction":

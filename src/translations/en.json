@@ -23,6 +23,18 @@
         "split": "Split (outdoor + indoor unit)"
       }
     },
+    "switching_valve": {
+      "name": "Switching valve",
+      "ports": {
+        "in": "Common (AB)",
+        "out_a": "Circuit A",
+        "out_b": "Circuit B"
+      },
+      "variants": {
+        "diverting": "Diverting (AB → A or B)",
+        "mixing": "Mixing (A or B → AB)"
+      }
+    },
     "valve_3way": {
       "name": "3-way valve",
       "ports": {

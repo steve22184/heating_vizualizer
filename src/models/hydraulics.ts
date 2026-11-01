@@ -1,4 +1,4 @@
-import { getNodeDefinition, tankRole } from "./device-registry.js";
+import { SWITCHING_VALVE_MIXING, getNodeDefinition, tankRole } from "./device-registry.js";
 import { connectionId, formatPortRef, parsePortRef, type HeatingSchema, type SchemaNode } from "./schema.js";
 
 /** What flows in a pipe; decides its color. */
@@ -141,6 +141,10 @@ function outletsFrom(node: SchemaNode, inlet: string, state: FlowNodeState): str
       return FOUR_PORT_FLOW[inlet] ?? [];
     case "valve_3way":
       return state.valveBranch ? [`out_${state.valveBranch}`] : outlets;
+    case "switching_valve":
+      // Mixing: water from circuit A or B leaves through the common AB port.
+      if (node.variant === SWITCHING_VALVE_MIXING) return outlets;
+      return state.valveBranch ? [`out_${state.valveBranch}`] : outlets;
     case "zone_valve":
       return node.entity_id && !state.active ? [] : outlets;
     case "manifold": {
@@ -239,7 +243,7 @@ export function dhwValveBranch(
     .map((p) => formatPortRef({ nodeId: sourceId, portId: p.id }));
   let valve: SchemaNode | undefined;
   walkDownstream(schema, outlets, (node) => {
-    if (node.type === "valve_3way") valve ??= node;
+    if (node.type === "valve_3way" || node.type === "switching_valve") valve ??= node;
     return !valve && node.id !== sourceId;
   });
   if (!valve) return undefined;
