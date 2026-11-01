@@ -32,6 +32,8 @@ export interface DeviceDefinition {
   variants?: string[];
   /** Small fittings show their name only when the user set one. */
   hideLabel?: boolean;
+  /** Moves the device name: `x` is its centre in device units, `y` lifts it by that many units. */
+  labelOffset?: { x?: number; y?: number };
   /** Builds the node-specific geometry, e.g. from the number of loops. */
   resolve?: (node: SchemaNode) => DeviceDefinition;
 }

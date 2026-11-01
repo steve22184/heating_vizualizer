@@ -708,6 +708,8 @@ export const GROUND_COLLECTOR: DeviceDefinition = {
   labelKey: "devices.ground_collector.name",
   width: 100,
   height: 70,
+  // The pipe covers x 26–100, so the name is centred on that and lifted 2 mm.
+  labelOffset: { x: 63, y: 7 },
   ports: [
     { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 100, y: 10 } },
     { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 100, y: 60 } },

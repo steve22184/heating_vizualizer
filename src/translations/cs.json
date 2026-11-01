@@ -3,8 +3,8 @@
     "ground_collector": {
       "name": "Zemní kolektor",
       "ports": {
-        "cold_in": "Chladivo – vstup",
-        "hot_out": "Chladivo – výstup"
+        "cold_in": "Chladivo – výstup",
+        "hot_out": "Chladivo – vstup"
       }
     },
     "heat_pump": {

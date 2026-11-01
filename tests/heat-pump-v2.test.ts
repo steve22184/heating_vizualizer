@@ -38,6 +38,11 @@ describe("heat pump presets", () => {
 });
 
 describe("ground collector", () => {
+  it("centres its name on the pipe and lifts it 2 mm", () => {
+    const def = getNodeDefinition({ id: "g", type: "ground_collector", position: at } as SchemaNode)!;
+    expect(def.labelOffset).toEqual({ x: 63, y: 7 });
+  });
+
   it("has a cold inlet and a warm outlet on opposite ends", () => {
     const def = getNodeDefinition({ id: "g", type: "ground_collector", position: at } as SchemaNode)!;
     const cold = def.ports.find((p) => p.id === "cold_in")!;

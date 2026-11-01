@@ -723,7 +723,7 @@ export class HeatingSchemaCanvas extends LitElement {
         </g>
         ${def.hideLabel && !node.name
           ? nothing
-          : svg`<text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">${name}</text>`}
+          : svg`<text x="${def.labelOffset?.x ?? def.width / 2}" y="${labelY - (def.labelOffset?.y ?? 0)}" text-anchor="middle" class="device-label">${name}</text>`}
         ${badges.length
           ? renderAddonBadges(
               badges,
