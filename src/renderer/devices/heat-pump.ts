@@ -389,39 +389,31 @@ function renderMixingValve(
 }
 
 /**
- * Triple loop of pipe between the two ports: a prolate trochoid, so each turn crosses itself as a loop.
- * The loop is drawn in the cold-water blue so it reads as part of the pipe.
+ * Serpentine of pipe: vertical runs joined by round U-turns, starting at the cold inlet on the right and
+ * returning to the warm outlet along the top edge. The two connectors sit 20 apart on the right side.
  */
-function renderGroundCollector(
-  def: DeviceDefinition,
-  t: Translator,
-  selected: boolean
-): ReturnType<typeof svg> {
-  const cy = def.height / 2;
-  const x0 = 16;
-  const x1 = def.width - 16;
-  const loops = 3;
-  const steps = 24;
-  const span = (x1 - x0) / loops;
-  // Prolate trochoid: the pipe runs back on itself, so each turn becomes a loop above the line.
-  const rad = span / (2 * Math.PI);
-  const d = rad * 2.6;
-  const height = 22;
-  const parts: string[] = [`M 0 ${cy} L ${x0} ${cy}`];
-  // Shifts where the loops fall along each turn, so the first and last turn are loops too.
-  const phase = Math.PI / 2;
-  for (let i = 0; i <= steps * loops; i++) {
-    const u = (i / steps) * 2 * Math.PI;
-    // Offsets make both ends land exactly on the pipe line at the two ports.
-    const x = x0 + rad * u - d * (Math.sin(u + phase) - Math.sin(phase));
-    const y = cy - (height / 2) * (Math.cos(phase) - Math.cos(u + phase));
-    parts.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`);
-  }
-  parts.push(`L ${x1} ${cy} L ${def.width} ${cy}`);
+function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: boolean): ReturnType<typeof svg> {
+  const top = 16;
+  const bottom = def.height - 16;
+  const r = 8;
+  const legs = [90, 74, 58, 42, 26];
+  const cold = def.ports.find((p) => p.id === "cold_in")!.position;
+  const hot = def.ports.find((p) => p.id === "hot_out")!.position;
+  const path: string[] = [`M ${def.width} ${cold.y} L ${legs[0]} ${cold.y}`, `L ${legs[0]} ${top}`];
+  legs.forEach((_x, i) => {
+    if (i === legs.length - 1) return;
+    const next = legs[i + 1];
+    const atTop = i % 2 === 0;
+    // Round U-turn between two legs: over the top, or under the bottom.
+    path.push(`A ${r} ${r} 0 0 ${atTop ? 0 : 1} ${next} ${atTop ? top : bottom}`);
+    path.push(`L ${next} ${atTop ? bottom : top}`);
+  });
+  const last = legs[legs.length - 1];
+  path.push(`L ${last} 0`, `L ${def.width} 0`, `L ${hot.x} ${hot.y}`);
   const color = selected ? "var(--primary-color, #03a9f4)" : "#42a5f5";
   return svg`
     <g class="device device-ground-collector">
-      <path d="${parts.join(" ")}" fill="none" stroke="${color}" stroke-width="3"
+      <path d="${path.join(" ")}" fill="none" stroke="${color}" stroke-width="3"
         stroke-linejoin="round" stroke-linecap="round" />
       ${renderPorts(def, t)}
     </g>

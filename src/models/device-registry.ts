@@ -702,11 +702,11 @@ export const DHW_OUTLET: DeviceDefinition = {
 export const GROUND_COLLECTOR: DeviceDefinition = {
   type: "ground_collector",
   labelKey: "devices.ground_collector.name",
-  width: 120,
+  width: 100,
   height: 60,
   ports: [
-    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 0, y: 30 } },
-    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 120, y: 30 } },
+    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 100, y: 20 } },
+    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 100, y: 40 } },
   ],
   addons: [],
 };

@@ -43,8 +43,8 @@ describe("ground collector", () => {
     const hot = def.ports.find((p) => p.id === "hot_out")!;
     expect(cold.kind).toBe("inlet");
     expect(hot.kind).toBe("outlet");
-    expect(cold.position.x).toBe(0);
+    expect(cold.position.x).toBe(def.width);
     expect(hot.position.x).toBe(def.width);
-    expect(cold.position.y).toBe(hot.position.y);
+    expect(cold.position.y - hot.position.y).toBe(20);
   });
 });
