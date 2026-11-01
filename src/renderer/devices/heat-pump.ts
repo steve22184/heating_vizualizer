@@ -397,9 +397,8 @@ function renderOutdoorUnit(
 ): ReturnType<typeof svg> {
   const stroke = operationColor(state.operation) ?? frameStroke(state, selected);
   const strokeWidth = frameWidth(selected);
-  // Square housing: the fan is centred in it.
-  const cx = def.width / 2;
-  const cy = def.height / 2;
+  const cx = 58;
+  const cy = 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";
   const defrost = state.operation === "defrost";
   const fan = heatPumpFan(state, extras.addons ?? []);
@@ -413,7 +412,7 @@ function renderOutdoorUnit(
     <g class="device device-outdoor-unit">
       <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
-      <circle cx="${cx}" cy="${cy}" r="30" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
+      <circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
       <g class="fan ${fan.active ? "spinning" : ""}" style="${fan.duration ? `animation-duration: ${fan.duration}s` : ""}">
         ${[0, 90, 180, 270].map((angle) => svg`
           <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
@@ -422,11 +421,11 @@ function renderOutdoorUnit(
         <circle cx="${cx}" cy="${cy}" r="5" fill="${fanColor}" />
       </g>
       ${defrost
-        ? svg`<path class="defrost" d="M ${cx} ${cy - 40} v 14 M ${cx - 6} ${cy - 36} l 12 6 M ${cx - 6} ${cy - 30} l 12 -6"
+        ? svg`<path class="defrost" d="M ${cx} ${cy - 44} v 14 M ${cx - 6} ${cy - 40} l 12 6 M ${cx - 6} ${cy - 34} l 12 -6"
             stroke="${fanColor}" stroke-width="2" stroke-linecap="round" />`
         : svg``}
       ${rows.map((row, i) => svg`
-        <text x="${cx + 36}" y="${cy - 30 + i * 13}" class="device-value" style="${row.color ? `fill: ${row.color}` : ""}">
+        <text x="104" y="${30 + i * 15}" class="device-value" style="${row.color ? `fill: ${row.color}` : ""}">
           <title>${row.label}</title>${row.text}
         </text>
       `)}

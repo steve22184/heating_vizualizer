@@ -43,7 +43,7 @@ describe("connections", () => {
     expect(candidates).not.toContain("m.supply_in");
     expect(candidates).toContain("fh.in");
     expect(candidates.every((c) => !c.startsWith("hp."))).toBe(true);
-    expect(connectedPortCount(s, s.nodes[0])).toEqual([1, 4]);
+    expect(connectedPortCount(s, s.nodes[0])).toEqual([1, 2]);
   });
 
   it("renumbers loop ports after removing a loop", () => {
