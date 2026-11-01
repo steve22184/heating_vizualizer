@@ -427,18 +427,22 @@ export const HEAT_PUMP_VALUE_SLOTS = [
 
 export const HEAT_PUMP_V2 = "v2";
 
-/** Square variant of the heat pump: 150 x 150, fan in the middle, connections on both sides. */
+/** v2 of the heat pump: 150 x 225, fan in the middle, connections on both sides. */
 function heatPumpV2Definition(): DeviceDefinition {
-  const size = 150;
+  const width = 150;
+  const height = 225;
+  // Connectors on both sides, 50 apart; the pair is centred on the taller housing.
+  const coolantIn = "devices.heat_pump.ports.coolant_in";
+  const coolantOut = "devices.heat_pump.ports.coolant_out";
   return {
     ...HEAT_PUMP,
-    width: size,
-    height: size,
+    width,
+    height,
     ports: [
-      { id: "hot_out", labelKey: "devices.heat_pump.ports.hot_out", kind: "outlet", position: { x: size, y: 40 } },
-      { id: "cold_in", labelKey: "devices.heat_pump.ports.cold_in", kind: "inlet", position: { x: size, y: 90 } },
-      { id: "hot_out_left", labelKey: "devices.heat_pump.ports.hot_out", kind: "outlet", position: { x: 0, y: 40 } },
-      { id: "cold_in_left", labelKey: "devices.heat_pump.ports.cold_in", kind: "inlet", position: { x: 0, y: 90 } },
+      { id: "hot_out", labelKey: coolantIn, kind: "outlet", position: { x: width, y: 90 } },
+      { id: "cold_in", labelKey: coolantOut, kind: "inlet", position: { x: width, y: 140 } },
+      { id: "hot_out_left", labelKey: coolantIn, kind: "outlet", position: { x: 0, y: 90 } },
+      { id: "cold_in_left", labelKey: coolantOut, kind: "inlet", position: { x: 0, y: 140 } },
     ],
   };
 }
@@ -703,10 +707,10 @@ export const GROUND_COLLECTOR: DeviceDefinition = {
   type: "ground_collector",
   labelKey: "devices.ground_collector.name",
   width: 100,
-  height: 60,
+  height: 70,
   ports: [
-    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 100, y: 20 } },
-    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 100, y: 40 } },
+    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 100, y: 10 } },
+    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 100, y: 60 } },
   ],
   addons: [],
 };

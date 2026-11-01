@@ -3,14 +3,16 @@
     "ground_collector": {
       "name": "Ground collector",
       "ports": {
-        "cold_in": "Cold water in",
-        "hot_out": "Warm water out"
+        "cold_in": "Coolant in",
+        "hot_out": "Coolant out"
       }
     },
     "heat_pump": {
       "name": "Heat pump",
-      "name_v2": "Heat pump v2 (square)",
+      "name_v2": "Heat pump v2",
       "ports": {
+        "coolant_in": "Coolant in",
+        "coolant_out": "Coolant out",
         "cold_in": "Heating water return",
         "hot_out": "Heating water out"
       },

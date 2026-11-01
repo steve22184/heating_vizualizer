@@ -3,14 +3,16 @@
     "ground_collector": {
       "name": "Zemní kolektor",
       "ports": {
-        "cold_in": "Studená voda vstup",
-        "hot_out": "Teplá voda výstup"
+        "cold_in": "Chladivo – vstup",
+        "hot_out": "Chladivo – výstup"
       }
     },
     "heat_pump": {
       "name": "Tepelné čerpadlo",
-      "name_v2": "Tepelné čerpadlo v2 (štvorcové)",
+      "name_v2": "Tepelné čerpadlo v2",
       "ports": {
+        "coolant_in": "Chladivo – vstup",
+        "coolant_out": "Chladivo – výstup",
         "cold_in": "Vratka topné vody",
         "hot_out": "Výstup topné vody"
       },

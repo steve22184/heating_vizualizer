@@ -14,14 +14,14 @@ describe("heat pump", () => {
 
   it("v2 is square, with mirrored connections on both sides", () => {
     const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at, variant: "v2" } as SchemaNode)!;
-    expect([def.width, def.height]).toEqual([150, 150]);
+    expect([def.width, def.height]).toEqual([150, 225]);
     const left = def.ports.filter((p) => p.position.x === 0).map((p) => p.id);
     const right = def.ports.filter((p) => p.position.x === 150).map((p) => p.id);
     expect(left).toEqual(["hot_out_left", "cold_in_left"]);
     expect(right).toEqual(["hot_out", "cold_in"]);
     const ys = (side: string[]) => def.ports.filter((p) => side.includes(p.id)).map((p) => p.position.y);
-    expect(ys(left)).toEqual([40, 90]);
-    expect(ys(right)).toEqual([40, 90]);
+    expect(ys(left)).toEqual([90, 140]);
+    expect(ys(right)).toEqual([90, 140]);
   });
 });
 
@@ -32,6 +32,7 @@ describe("heat pump presets", () => {
     expect(getPreset("heat_pump_v2")?.variant).toBe("v2");
     const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at, variant: "v2" } as SchemaNode)!;
     expect(def.width).toBe(150);
+    expect(def.height).toBe(225);
     expect(getNodeDefinition({ id: "h", type: "heat_pump", position: at } as SchemaNode)!.width).toBe(170);
   });
 });
@@ -45,6 +46,6 @@ describe("ground collector", () => {
     expect(hot.kind).toBe("outlet");
     expect(cold.position.x).toBe(def.width);
     expect(hot.position.x).toBe(def.width);
-    expect(cold.position.y - hot.position.y).toBe(20);
+    expect(cold.position.y - hot.position.y).toBe(50);
   });
 });

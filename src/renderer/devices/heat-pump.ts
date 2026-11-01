@@ -432,13 +432,13 @@ function renderOutdoorUnit(
 ): ReturnType<typeof svg> {
   const stroke = operationColor(state.operation) ?? frameStroke(state, selected);
   const strokeWidth = frameWidth(selected);
-  // v2 is square with the fan centred; the original housing keeps the fan on the left.
-  const square = def.width === def.height;
-  const cx = square ? def.width / 2 : 58;
-  const cy = square ? def.height / 2 : 60;
+  // v2 has connections on both sides and the fan centred; the original housing keeps the fan on the left.
+  const v2 = def.ports.some((p) => p.id === "hot_out_left");
+  const cx = v2 ? def.width / 2 : 58;
+  const cy = v2 ? def.height / 2 : 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";
   const defrost = state.operation === "defrost";
-  const top = square ? cy - 40 : cy - 44;
+  const top = v2 ? cy - 40 : cy - 44;
   const fan = heatPumpFan(state, extras.addons ?? []);
   const fanColor = defrost ? DEFROST_COLOR : "var(--primary-color, #03a9f4)";
   const heaters = (extras.addons ?? [])
@@ -450,7 +450,7 @@ function renderOutdoorUnit(
     <g class="device device-outdoor-unit">
       <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
-      <circle cx="${cx}" cy="${cy}" r="${square ? 30 : 34}" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
+      <circle cx="${cx}" cy="${cy}" r="${v2 ? 30 : 34}" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
       <g class="fan ${fan.active ? "spinning" : ""}" style="${fan.duration ? `animation-duration: ${fan.duration}s` : ""}">
         ${[0, 90, 180, 270].map((angle) => svg`
           <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
@@ -463,7 +463,7 @@ function renderOutdoorUnit(
             stroke="${fanColor}" stroke-width="2" stroke-linecap="round" />`
         : svg``}
       ${rows.map((row, i) => svg`
-        <text x="${square ? cx + 36 : 104}" y="${square ? cy - 30 + i * 13 : 30 + i * 15}" class="device-value" style="${row.color ? `fill: ${row.color}` : ""}">
+        <text x="${v2 ? cx + 36 : 104}" y="${v2 ? cy - 30 + i * 13 : 30 + i * 15}" class="device-value" style="${row.color ? `fill: ${row.color}` : ""}">
           <title>${row.label}</title>${row.text}
         </text>
       `)}
