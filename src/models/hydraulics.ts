@@ -50,7 +50,9 @@ const LOOP_PORT = /^loop_(\d+)_(in|out)$/;
 const DUAL_COIL_MEDIA: Record<string, Medium> = {
   coil2_in: "cold_water",
   coil2_out: "hot_water",
-  hot_out2: "hot_water",
+  // Top-left outlet (expansion vessel) and the outlet to the switching valve carry heating water, not DHW.
+  hot_out: "supply",
+  hot_out2: "supply",
 };
 
 function portMedium(node: SchemaNode, portId: string): Medium | undefined {
