@@ -355,13 +355,12 @@ export const MANIFOLD: DeviceDefinition = {
     manifoldDefinition(Math.max(1, node.addons?.filter((a) => a.type === "loop").length ?? 0)),
 };
 
-/** Switching valve in mixing mode: A and B are inlets, the common AB port is the outlet. */
+/** Switching valve variants: the default has A and B as inlets and the common AB port as outlet. */
 export const SWITCHING_VALVE_MIXING = "mixing";
+/** Diverting variant: the common AB port is the inlet and the flow goes to circuit A or B. */
+export const SWITCHING_VALVE_DIVERTING = "diverting";
 
-/**
- * Switching (diverter) valve drawn like the mixing valve. Default: the common AB port is the inlet and the flow
- * goes to circuit A or B. Mixing variant: A and B are inlets, AB is the outlet.
- */
+/** Switching valve drawn like the mixing valve. `mixing` = A and B are inlets, AB is the outlet. */
 function switchingValveDefinition(mixing: boolean): DeviceDefinition {
   const abKind = mixing ? "outlet" : "inlet";
   const circuitKind = mixing ? "inlet" : "outlet";
@@ -370,7 +369,7 @@ function switchingValveDefinition(mixing: boolean): DeviceDefinition {
     labelKey: "devices.switching_valve.name",
     width: 100,
     height: 110,
-    variants: ["diverting", SWITCHING_VALVE_MIXING],
+    variants: [SWITCHING_VALVE_MIXING, SWITCHING_VALVE_DIVERTING],
     ports: [
       { id: "in", labelKey: "devices.switching_valve.ports.in", kind: abKind, tone: "hot", position: { x: 100, y: 70 } },
       { id: "out_a", labelKey: "devices.switching_valve.ports.out_a", kind: circuitKind, tone: "hot", position: { x: 0, y: 70 } },
@@ -381,8 +380,8 @@ function switchingValveDefinition(mixing: boolean): DeviceDefinition {
 }
 
 export const SWITCHING_VALVE: DeviceDefinition = {
-  ...switchingValveDefinition(false),
-  resolve: (node) => switchingValveDefinition(node.variant === SWITCHING_VALVE_MIXING),
+  ...switchingValveDefinition(true),
+  resolve: (node) => switchingValveDefinition(node.variant !== SWITCHING_VALVE_DIVERTING),
 };
 
 export const MIXING_VALVE: DeviceDefinition = {
