@@ -427,23 +427,25 @@ export const HEAT_PUMP_VALUE_SLOTS = [
 
 export const HEAT_PUMP_V2 = "v2";
 
-/** v2 of the heat pump: 150 x 225, fan in the middle, connections on both sides. */
+/** v2 of the heat pump: square 170 x 170, fan in the middle, connections on both sides. */
 function heatPumpV2Definition(): DeviceDefinition {
-  const width = 150;
-  const height = 225;
-  // Upper connectors are inlets (warm coolant comes in from the ground collector), lower ones outlets
-  // (cold coolant goes back to the ground collector), on both sides.
+  const width = 170;
+  const height = 170;
+  // Upper connectors are inlets, lower ones outlets, on both sides. The right side is the refrigerant
+  // circuit (hot gas out on top, liquid in below); the left side keeps the coolant labels.
   const coolantIn = "devices.heat_pump.ports.coolant_in";
   const coolantOut = "devices.heat_pump.ports.coolant_out";
+  const hotGasOut = "devices.heat_pump.ports.hot_gas_coolant_out";
+  const liquidIn = "devices.heat_pump.ports.liquid_coolant_in";
   return {
     ...HEAT_PUMP,
     width,
     height,
     ports: [
-      { id: "v2_top", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: width, y: 90 } },
-      { id: "v2_bottom", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: width, y: 140 } },
-      { id: "v2_top_left", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: 0, y: 90 } },
-      { id: "v2_bottom_left", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: 0, y: 140 } },
+      { id: "v2_top", labelKey: hotGasOut, kind: "inlet", tone: "hot", position: { x: width, y: 60 } },
+      { id: "v2_bottom", labelKey: liquidIn, kind: "outlet", tone: "cold", position: { x: width, y: 110 } },
+      { id: "v2_top_left", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: 0, y: 60 } },
+      { id: "v2_bottom_left", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: 0, y: 110 } },
     ],
   };
 }

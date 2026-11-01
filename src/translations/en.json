@@ -13,6 +13,8 @@
       "ports": {
         "coolant_in": "Coolant in",
         "coolant_out": "Coolant out",
+        "hot_gas_coolant_out": "Hot gas coolant out",
+        "liquid_coolant_in": "Liquid coolant in",
         "cold_in": "Heating water return",
         "hot_out": "Heating water out"
       },

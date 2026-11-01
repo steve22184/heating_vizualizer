@@ -13,6 +13,8 @@
       "ports": {
         "coolant_in": "Chladivo – vstup",
         "coolant_out": "Chladivo – výstup",
+        "hot_gas_coolant_out": "Horký plyn – výstup chladiva",
+        "liquid_coolant_in": "Kapalné chladivo – vstup",
         "cold_in": "Vratka topné vody",
         "hot_out": "Výstup topné vody"
       },

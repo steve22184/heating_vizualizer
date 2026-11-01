@@ -14,16 +14,16 @@ describe("heat pump", () => {
 
   it("v2 is square, with mirrored connections on both sides", () => {
     const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at, variant: "v2" } as SchemaNode)!;
-    expect([def.width, def.height]).toEqual([150, 225]);
+    expect([def.width, def.height]).toEqual([170, 170]);
     const left = def.ports.filter((p) => p.position.x === 0).map((p) => p.id);
-    const right = def.ports.filter((p) => p.position.x === 150).map((p) => p.id);
+    const right = def.ports.filter((p) => p.position.x === 170).map((p) => p.id);
     expect(left).toEqual(["v2_top_left", "v2_bottom_left"]);
     expect(right).toEqual(["v2_top", "v2_bottom"]);
     expect(def.ports.find((p) => p.id === "v2_top")!.kind).toBe("inlet");
     expect(def.ports.find((p) => p.id === "v2_bottom")!.kind).toBe("outlet");
     const ys = (side: string[]) => def.ports.filter((p) => side.includes(p.id)).map((p) => p.position.y);
-    expect(ys(left)).toEqual([90, 140]);
-    expect(ys(right)).toEqual([90, 140]);
+    expect(ys(left)).toEqual([60, 110]);
+    expect(ys(right)).toEqual([60, 110]);
   });
 });
 
@@ -33,8 +33,8 @@ describe("heat pump presets", () => {
     expect(DEVICE_PRESETS.filter((p) => p.type === "heat_pump").map((p) => p.id)).toEqual(["heat_pump", "heat_pump_v2"]);
     expect(getPreset("heat_pump_v2")?.variant).toBe("v2");
     const def = getNodeDefinition({ id: "h", type: "heat_pump", position: at, variant: "v2" } as SchemaNode)!;
-    expect(def.width).toBe(150);
-    expect(def.height).toBe(225);
+    expect(def.width).toBe(170);
+    expect(def.height).toBe(170);
     expect(getNodeDefinition({ id: "h", type: "heat_pump", position: at } as SchemaNode)!.width).toBe(170);
   });
 });
