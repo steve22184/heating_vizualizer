@@ -431,8 +431,8 @@ export const HEAT_PUMP_V2 = "v2";
 function heatPumpV2Definition(): DeviceDefinition {
   const width = 150;
   const height = 225;
-  // Coolant in is the upper connector and coolant out the lower one on both sides, so pipes from a
-  // ground collector (red on top, blue below) meet them without crossing.
+  // Upper connectors are outlets (red) and lower ones inlets (blue) on both sides; a connection always
+  // joins an outlet to an inlet, so the ground collector takes its inlet on top to avoid crossing pipes.
   const coolantIn = "devices.heat_pump.ports.coolant_in";
   const coolantOut = "devices.heat_pump.ports.coolant_out";
   return {
@@ -440,10 +440,10 @@ function heatPumpV2Definition(): DeviceDefinition {
     width,
     height,
     ports: [
-      { id: "v2_in", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: width, y: 90 } },
-      { id: "v2_out", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: width, y: 140 } },
-      { id: "v2_in_left", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: 0, y: 90 } },
-      { id: "v2_out_left", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: 0, y: 140 } },
+      { id: "v2_top", labelKey: coolantIn, kind: "outlet", tone: "hot", position: { x: width, y: 90 } },
+      { id: "v2_bottom", labelKey: coolantOut, kind: "inlet", tone: "cold", position: { x: width, y: 140 } },
+      { id: "v2_top_left", labelKey: coolantIn, kind: "outlet", tone: "hot", position: { x: 0, y: 90 } },
+      { id: "v2_bottom_left", labelKey: coolantOut, kind: "inlet", tone: "cold", position: { x: 0, y: 140 } },
     ],
   };
 }
@@ -712,8 +712,8 @@ export const GROUND_COLLECTOR: DeviceDefinition = {
   // The pipe covers x 26–100, so the name is centred on that and lifted 2 mm.
   labelOffset: { x: 63, y: 7 },
   ports: [
-    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 100, y: 10 } },
-    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 100, y: 60 } },
+    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 100, y: 60 } },
+    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 100, y: 10 } },
   ],
   addons: [],
 };

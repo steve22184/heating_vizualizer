@@ -393,15 +393,15 @@ function renderMixingValve(
  * returning to the warm outlet along the top edge. The two connectors sit 20 apart on the right side.
  */
 function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: boolean): ReturnType<typeof svg> {
-  // The serpentine sits 7 lower, so the return line along the top has room above it.
+  // Shape is drawn with the cold inlet below and mirrored, so the inlet can sit on top of the outlet.
   const shift = 7;
   const top = 16 + shift;
   const bottom = def.height - 16 + shift;
   const r = 8;
   const legs = [90, 74, 58, 42, 26];
-  const cold = def.ports.find((p) => p.id === "cold_in")!.position;
-  const hot = def.ports.find((p) => p.id === "hot_out")!.position;
-  const path: string[] = [`M ${def.width} ${cold.y} L ${legs[0]} ${cold.y}`, `L ${legs[0]} ${top}`];
+  const coldY = def.height - 10;
+  const hotY = 10;
+  const path: string[] = [`M ${def.width} ${coldY} L ${legs[0]} ${coldY}`, `L ${legs[0]} ${top}`];
   legs.forEach((_x, i) => {
     if (i === legs.length - 1) return;
     const next = legs[i + 1];
@@ -412,11 +412,11 @@ function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: b
   });
   // Return line along the top, with a rounded corner where it turns down from the last run.
   const lastX = legs[legs.length - 1];
-  path.push(`L ${lastX} ${r}`, `A ${r} ${r} 0 0 1 ${lastX + r} 0`, `L ${def.width} 0`, `L ${hot.x} ${hot.y}`);
+  path.push(`L ${lastX} ${r}`, `A ${r} ${r} 0 0 1 ${lastX + r} 0`, `L ${def.width} 0`, `L ${def.width} ${hotY}`);
   const color = selected ? "var(--primary-color, #03a9f4)" : "#42a5f5";
   return svg`
     <g class="device device-ground-collector">
-      <path d="${path.join(" ")}" fill="none" stroke="${color}" stroke-width="3"
+      <path d="${path.join(" ")}" transform="translate(0 ${def.height}) scale(1 -1)" fill="none" stroke="${color}" stroke-width="3"
         stroke-linejoin="round" stroke-linecap="round" />
       ${renderPorts(def, t)}
     </g>
@@ -433,7 +433,7 @@ function renderOutdoorUnit(
   const stroke = operationColor(state.operation) ?? frameStroke(state, selected);
   const strokeWidth = frameWidth(selected);
   // v2 has connections on both sides and the fan centred; the original housing keeps the fan on the left.
-  const v2 = def.ports.some((p) => p.id === "v2_in_left");
+  const v2 = def.ports.some((p) => p.id === "v2_top_left");
   const cx = v2 ? def.width / 2 : 58;
   const cy = v2 ? def.height / 2 : 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";

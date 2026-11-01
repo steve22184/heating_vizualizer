@@ -17,10 +17,10 @@ describe("heat pump", () => {
     expect([def.width, def.height]).toEqual([150, 225]);
     const left = def.ports.filter((p) => p.position.x === 0).map((p) => p.id);
     const right = def.ports.filter((p) => p.position.x === 150).map((p) => p.id);
-    expect(left).toEqual(["v2_in_left", "v2_out_left"]);
-    expect(right).toEqual(["v2_in", "v2_out"]);
-    expect(def.ports.find((p) => p.id === "v2_in")!.kind).toBe("inlet");
-    expect(def.ports.find((p) => p.id === "v2_out")!.kind).toBe("outlet");
+    expect(left).toEqual(["v2_top_left", "v2_bottom_left"]);
+    expect(right).toEqual(["v2_top", "v2_bottom"]);
+    expect(def.ports.find((p) => p.id === "v2_top")!.kind).toBe("outlet");
+    expect(def.ports.find((p) => p.id === "v2_bottom")!.kind).toBe("inlet");
     const ys = (side: string[]) => def.ports.filter((p) => side.includes(p.id)).map((p) => p.position.y);
     expect(ys(left)).toEqual([90, 140]);
     expect(ys(right)).toEqual([90, 140]);
@@ -53,6 +53,7 @@ describe("ground collector", () => {
     expect(hot.kind).toBe("outlet");
     expect(cold.position.x).toBe(def.width);
     expect(hot.position.x).toBe(def.width);
-    expect(cold.position.y - hot.position.y).toBe(50);
+    expect(Math.abs(cold.position.y - hot.position.y)).toBe(50);
+    expect(cold.position.y).toBeLessThan(hot.position.y);
   });
 });
