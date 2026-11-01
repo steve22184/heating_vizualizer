@@ -698,8 +698,22 @@ export const DHW_OUTLET: DeviceDefinition = {
   addons: [values(2)],
 };
 
+/** Ground collector: a triple loop of pipe between a cold inlet (blue) and a warm outlet (red). */
+export const GROUND_COLLECTOR: DeviceDefinition = {
+  type: "ground_collector",
+  labelKey: "devices.ground_collector.name",
+  width: 120,
+  height: 60,
+  ports: [
+    { id: "cold_in", labelKey: "devices.ground_collector.ports.cold_in", kind: "inlet", tone: "cold", position: { x: 0, y: 30 } },
+    { id: "hot_out", labelKey: "devices.ground_collector.ports.hot_out", kind: "outlet", tone: "hot", position: { x: 120, y: 30 } },
+  ],
+  addons: [],
+};
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
+  GROUND_COLLECTOR,
   HEATING_BOILER,
   SOLAR_COLLECTOR,
   TANK,

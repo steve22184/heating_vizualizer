@@ -35,3 +35,16 @@ describe("heat pump presets", () => {
     expect(getNodeDefinition({ id: "h", type: "heat_pump", position: at } as SchemaNode)!.width).toBe(170);
   });
 });
+
+describe("ground collector", () => {
+  it("has a cold inlet and a warm outlet on opposite ends", () => {
+    const def = getNodeDefinition({ id: "g", type: "ground_collector", position: at } as SchemaNode)!;
+    const cold = def.ports.find((p) => p.id === "cold_in")!;
+    const hot = def.ports.find((p) => p.id === "hot_out")!;
+    expect(cold.kind).toBe("inlet");
+    expect(hot.kind).toBe("outlet");
+    expect(cold.position.x).toBe(0);
+    expect(hot.position.x).toBe(def.width);
+    expect(cold.position.y).toBe(hot.position.y);
+  });
+});

@@ -1,5 +1,12 @@
 {
   "devices": {
+    "ground_collector": {
+      "name": "Ground collector",
+      "ports": {
+        "cold_in": "Cold water in",
+        "hot_out": "Warm water out"
+      }
+    },
     "heat_pump": {
       "name": "Heat pump",
       "name_v2": "Heat pump v2 (square)",

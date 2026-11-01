@@ -1,5 +1,12 @@
 {
   "devices": {
+    "ground_collector": {
+      "name": "Zemní kolektor",
+      "ports": {
+        "cold_in": "Studená voda vstup",
+        "hot_out": "Teplá voda výstup"
+      }
+    },
     "heat_pump": {
       "name": "Tepelné čerpadlo",
       "name_v2": "Tepelné čerpadlo v2 (štvorcové)",

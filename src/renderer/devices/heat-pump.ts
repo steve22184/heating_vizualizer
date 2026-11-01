@@ -388,6 +388,46 @@ function renderMixingValve(
   `;
 }
 
+/**
+ * Triple loop of pipe between the two ports: a prolate trochoid, so each turn crosses itself as a loop.
+ * The loop is drawn in the cold-water blue so it reads as part of the pipe.
+ */
+function renderGroundCollector(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean
+): ReturnType<typeof svg> {
+  const cy = def.height / 2;
+  const x0 = 16;
+  const x1 = def.width - 16;
+  const loops = 3;
+  const steps = 24;
+  const span = (x1 - x0) / loops;
+  // Prolate trochoid: the pipe runs back on itself, so each turn becomes a loop above the line.
+  const rad = span / (2 * Math.PI);
+  const d = rad * 2.6;
+  const height = 22;
+  const parts: string[] = [`M 0 ${cy} L ${x0} ${cy}`];
+  // Shifts where the loops fall along each turn, so the first and last turn are loops too.
+  const phase = Math.PI / 2;
+  for (let i = 0; i <= steps * loops; i++) {
+    const u = (i / steps) * 2 * Math.PI;
+    // Offsets make both ends land exactly on the pipe line at the two ports.
+    const x = x0 + rad * u - d * (Math.sin(u + phase) - Math.sin(phase));
+    const y = cy - (height / 2) * (Math.cos(phase) - Math.cos(u + phase));
+    parts.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`);
+  }
+  parts.push(`L ${x1} ${cy} L ${def.width} ${cy}`);
+  const color = selected ? "var(--primary-color, #03a9f4)" : "#42a5f5";
+  return svg`
+    <g class="device device-ground-collector">
+      <path d="${parts.join(" ")}" fill="none" stroke="${color}" stroke-width="3"
+        stroke-linejoin="round" stroke-linecap="round" />
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 function renderOutdoorUnit(
   def: DeviceDefinition,
   t: Translator,
@@ -513,6 +553,8 @@ export function renderDeviceByType(
   switch (type) {
     case "heat_pump":
       return renderOutdoorUnit(def, t, selected, state, extras);
+    case "ground_collector":
+      return renderGroundCollector(def, t, selected);
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
     case "tank":
