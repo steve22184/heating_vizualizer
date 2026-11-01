@@ -211,7 +211,7 @@ function t(t,e,o,i){var n,r=arguments.length,a=r<3?e:null===i?i=Object.getOwnPro
       <text x="${r}" y="${a-17}" text-anchor="middle" class="device-value">${i.value??"—"}</text>
       ${zo(t,e)}
     </g>
-  `}function Yo(t,e,o,i,n,r={}){switch(t){case"heat_pump":return Fo(e,o,i,n,r);case"ground_collector":return function(t,e,o){const i=t.height-16,n=[90,74,58,42,26],r=t.ports.find(t=>"cold_in"===t.id).position,a=t.ports.find(t=>"hot_out"===t.id).position,s=[`M ${t.width} ${r.y} L ${n[0]} ${r.y}`,`L ${n[0]} 16`];n.forEach((t,e)=>{if(e===n.length-1)return;const o=n[e+1],r=e%2==0;s.push(`A 8 8 0 0 ${r?0:1} ${o} ${r?16:i}`),s.push(`L ${o} ${r?i:16}`)});const l=n[n.length-1];s.push(`L ${l} 0`,`L ${t.width} 0`,`L ${a.x} ${a.y}`);const d=o?"var(--primary-color, #03a9f4)":"#42a5f5";return q`
+  `}function Yo(t,e,o,i,n,r={}){switch(t){case"heat_pump":return Fo(e,o,i,n,r);case"ground_collector":return function(t,e,o){const i=t.height-16+7,n=[90,74,58,42,26],r=t.ports.find(t=>"cold_in"===t.id).position,a=t.ports.find(t=>"hot_out"===t.id).position,s=[`M ${t.width} ${r.y} L ${n[0]} ${r.y}`,`L ${n[0]} 23`];n.forEach((t,e)=>{if(e===n.length-1)return;const o=n[e+1],r=e%2==0;s.push(`A 8 8 0 0 ${r?0:1} ${o} ${r?23:i}`),s.push(`L ${o} ${r?i:23}`)});const l=n[n.length-1];s.push(`L ${l} 8`,`A 8 8 0 0 1 ${l+8} 0`,`L ${t.width} 0`,`L ${a.x} ${a.y}`);const d=o?"var(--primary-color, #03a9f4)":"#42a5f5";return q`
     <g class="device device-ground-collector">
       <path d="${s.join(" ")}" fill="none" stroke="${d}" stroke-width="3"
         stroke-linejoin="round" stroke-linecap="round" />

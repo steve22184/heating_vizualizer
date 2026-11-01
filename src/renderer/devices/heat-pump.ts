@@ -393,8 +393,10 @@ function renderMixingValve(
  * returning to the warm outlet along the top edge. The two connectors sit 20 apart on the right side.
  */
 function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: boolean): ReturnType<typeof svg> {
-  const top = 16;
-  const bottom = def.height - 16;
+  // The serpentine sits 7 lower, so the return line along the top has room above it.
+  const shift = 7;
+  const top = 16 + shift;
+  const bottom = def.height - 16 + shift;
   const r = 8;
   const legs = [90, 74, 58, 42, 26];
   const cold = def.ports.find((p) => p.id === "cold_in")!.position;
@@ -408,8 +410,9 @@ function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: b
     path.push(`A ${r} ${r} 0 0 ${atTop ? 0 : 1} ${next} ${atTop ? top : bottom}`);
     path.push(`L ${next} ${atTop ? bottom : top}`);
   });
-  const last = legs[legs.length - 1];
-  path.push(`L ${last} 0`, `L ${def.width} 0`, `L ${hot.x} ${hot.y}`);
+  // Return line along the top, with a rounded corner where it turns down from the last run.
+  const lastX = legs[legs.length - 1];
+  path.push(`L ${lastX} ${r}`, `A ${r} ${r} 0 0 1 ${lastX + r} 0`, `L ${def.width} 0`, `L ${hot.x} ${hot.y}`);
   const color = selected ? "var(--primary-color, #03a9f4)" : "#42a5f5";
   return svg`
     <g class="device device-ground-collector">
