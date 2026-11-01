@@ -14,7 +14,7 @@ const FOUR_PORT: Record<string, Medium> = {
 
 /** Ports that fix the medium; devices without an entry pass the medium of their pipes on. */
 const PORT_MEDIA: Record<string, Record<string, Medium>> = {
-  heat_pump: { hot_out: "supply", cold_in: "return" },
+  heat_pump: { hot_out: "supply", cold_in: "return", v2_in: "supply", v2_in_left: "supply", v2_out: "return", v2_out_left: "return" },
   ground_collector: { cold_in: "return", hot_out: "supply" },
   heating_boiler: { supply_out: "supply", return_in: "return" },
   solar_collector: { hot_out: "supply", cold_in: "return" },

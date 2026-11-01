@@ -433,7 +433,7 @@ function renderOutdoorUnit(
   const stroke = operationColor(state.operation) ?? frameStroke(state, selected);
   const strokeWidth = frameWidth(selected);
   // v2 has connections on both sides and the fan centred; the original housing keeps the fan on the left.
-  const v2 = def.ports.some((p) => p.id === "hot_out_left");
+  const v2 = def.ports.some((p) => p.id === "v2_in_left");
   const cx = v2 ? def.width / 2 : 58;
   const cy = v2 ? def.height / 2 : 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";

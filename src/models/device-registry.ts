@@ -431,7 +431,8 @@ export const HEAT_PUMP_V2 = "v2";
 function heatPumpV2Definition(): DeviceDefinition {
   const width = 150;
   const height = 225;
-  // Connectors on both sides, 50 apart; the pair is centred on the taller housing.
+  // Coolant in is the upper connector and coolant out the lower one on both sides, so pipes from a
+  // ground collector (red on top, blue below) meet them without crossing.
   const coolantIn = "devices.heat_pump.ports.coolant_in";
   const coolantOut = "devices.heat_pump.ports.coolant_out";
   return {
@@ -439,10 +440,10 @@ function heatPumpV2Definition(): DeviceDefinition {
     width,
     height,
     ports: [
-      { id: "hot_out", labelKey: coolantIn, kind: "outlet", position: { x: width, y: 90 } },
-      { id: "cold_in", labelKey: coolantOut, kind: "inlet", position: { x: width, y: 140 } },
-      { id: "hot_out_left", labelKey: coolantIn, kind: "outlet", position: { x: 0, y: 90 } },
-      { id: "cold_in_left", labelKey: coolantOut, kind: "inlet", position: { x: 0, y: 140 } },
+      { id: "v2_in", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: width, y: 90 } },
+      { id: "v2_out", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: width, y: 140 } },
+      { id: "v2_in_left", labelKey: coolantIn, kind: "inlet", tone: "hot", position: { x: 0, y: 90 } },
+      { id: "v2_out_left", labelKey: coolantOut, kind: "outlet", tone: "cold", position: { x: 0, y: 140 } },
     ],
   };
 }
