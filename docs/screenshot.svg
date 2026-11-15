@@ -310,13 +310,10 @@ dialog.detail::backdrop { background: rgba(0, 0, 0, 0.6); }
     <g class="device device-outdoor-unit">
       <rect x="10" y="12" rx="6" fill="var(--card-background-color, #1c1c1c)" width="150" height="146" stroke="#4caf50" stroke-width="1.5"></rect>
       <circle fill="none" stroke-width="1.5" cx="85" cy="85" r="30" stroke="var(--divider-color, #888)"></circle>
-      <g class="fan spinning" style="">
-          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(85 85) rotate(0)" fill="var(--primary-color, #03a9f4)"></path>
-          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(85 85) rotate(90)" fill="var(--primary-color, #03a9f4)"></path>
-          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(85 85) rotate(180)" fill="var(--primary-color, #03a9f4)"></path>
-          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(85 85) rotate(270)" fill="var(--primary-color, #03a9f4)"></path>
-        <circle r="5" cx="85" cy="85" fill="var(--primary-color, #03a9f4)"></circle>
-      </g>
+    <g class="fan spinning" style="animation-duration: 0.8s">
+      <circle fill="none" stroke="none" cx="85" cy="85" r="24"></circle>
+      <path fill="none" stroke-width="2.5" stroke-linecap="round" d="M 85 85 m -3.2 0 a 3.2 3.2 0 1 1 6.4 0 a 7.2 7.2 0 1 1 -14.4 0 a 11.200000000000001 11.200000000000001 0 1 1 22.400000000000002 0 a 15.200000000000001 15.200000000000001 0 1 1 -30.400000000000002 0 a 19.200000000000003 19.200000000000003 0 1 1 38.400000000000006 0" stroke="var(--primary-color, #03a9f4)" opacity="0.9"></path>
+    </g>
     <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="v2_top" cx="170" cy="60" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Hot gas coolant out</title></circle>
     <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="v2_bottom" cx="170" cy="110" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Liquid coolant in</title></circle>
     <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="v2_top_left" cx="0" cy="60" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Coolant in</title></circle>
