@@ -6,7 +6,7 @@ Custom Lovelace card for Home Assistant **2026.9+**. Draw your heating system fr
 
 - **Visual editor** – add devices from a list, straight from an entity, or from a template; the editor suggests add-ons from the same Home Assistant device.
 - **Add-ons** describe parts of a physical device (tank sensors, backup heater, defrost, …), no matter which integration provides the entity.
-- **Heat pump detail** – a look inside the unit: animated refrigerant circuit, compressor, fan, plate heat exchanger and water side with all temperatures, pressures, power and COP; pinned in a corner of the card and/or opened by tap.
+- **Heat pump detail** – a look inside the unit: animated refrigerant circuit, evaporator and compressor with all temperatures, pressures, power and COP; pinned in a corner of the card and/or opened by tap.
 - **Right-angled pipes** (or curved), automatic arrangement in flow direction, drawing mode with drag & drop.
 - **Actions** – tap, hold and double tap use the standard Home Assistant actions (more info, toggle, navigate, …).
 - Follows the Home Assistant language and number formatting; keyboard and screen reader friendly; masonry and sections dashboards.
@@ -150,7 +150,7 @@ The outdoor unit lists supply, return and outdoor temperature first. With a `flo
 
 #### Heat pump detail
 
-The detail shows the inside of the heat pump from its add-ons: outdoor air and evaporator, fan, compressor (spinning with its frequency), expansion valve, plate heat exchanger, circulation pump and backup heater, every temperature and value in its slot, and power, heat output, COP, flow and ΔT at the bottom. The refrigerant is colored by its state (hot gas red, liquid orange, cold mixture light blue, suction gas blue), flows faster with a higher compressor frequency and runs backwards while defrosting. Sensors you do not have are simply left out.
+The detail shows the inside of the heat pump from its add-ons: the evaporator, compressor (spinning with its frequency) and expansion valve, with the refrigerant lines leading out to the right, every temperature and value in its slot, and power, heat output, COP, flow and ΔT at the bottom. The refrigerant is colored by its state (hot gas red, liquid orange, cold mixture light blue, suction gas blue), flows faster with a higher compressor frequency and runs backwards while defrosting. Sensors you do not have are simply left out.
 
 - `detail_pin: top_left | top_right | bottom_left | bottom_right` keeps a compact detail (circuit, operation, frequency and four large values: outdoor, supply, return, COP) in that corner of the card. `detail_size` sets its width in % of the schema width (15–80, default 40). On narrow cards it moves below the schema. Tap it for the full detail.
 - The action `detail` (`tap_action: { action: detail }`, also for hold or double tap) opens the full detail from the heat pump drawing.
