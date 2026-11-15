@@ -103,6 +103,53 @@ describe("flowingConnections", () => {
   });
 });
 
+describe("mixing switching valve", () => {
+  // Floor circuit: the pump pushes water through the tank, which feeds circuit A (upper outlet) and
+  // circuit B (heating outlet) of the switching valve; the common port leads back to the pump.
+  const loop: HeatingSchema = {
+    nodes: [
+      {
+        id: "tank",
+        type: "tank",
+        variant: "dual_coil",
+        position: { x: 0, y: 0 },
+        addons: [{ type: "heat_exchanger" }, { type: "heat_exchanger" }, { type: "dhw" }, { type: "direct_heating" }],
+      },
+      { id: "sw", type: "switching_valve", position: { x: 0, y: 0 } },
+      { id: "pump", type: "circulation_pump", position: { x: 0, y: 0 } },
+    ],
+    connections: [
+      { from: "pump.out", to: "tank.return_in" },
+      { from: "tank.hot_out2", to: "sw.out_a" },
+      { from: "tank.supply_out", to: "sw.out_b" },
+      { from: "sw.in", to: "pump.in" },
+    ],
+    overlays: [],
+  };
+  const states =
+    (branch: "a" | "b" | undefined) =>
+    (node: { id: string }): FlowNodeState =>
+      node.id === "pump" ? { active: true } : node.id === "sw" ? { active: false, valveBranch: branch } : { active: false };
+
+  it("animates only the pipe from the circuit the valve is switched to", () => {
+    const a = flowingConnections(loop, states("a"));
+    expect(a.has(pipe("tank.hot_out2", "sw.out_a"))).toBe(true);
+    expect(a.has(pipe("tank.supply_out", "sw.out_b"))).toBe(false);
+    expect(a.has(pipe("sw.in", "pump.in"))).toBe(true);
+
+    const b = flowingConnections(loop, states("b"));
+    expect(b.has(pipe("tank.hot_out2", "sw.out_a"))).toBe(false);
+    expect(b.has(pipe("tank.supply_out", "sw.out_b"))).toBe(true);
+    expect(b.has(pipe("sw.in", "pump.in"))).toBe(true);
+  });
+
+  it("keeps both circuits flowing while the position is unknown", () => {
+    const unknown = flowingConnections(loop, states(undefined));
+    expect(unknown.has(pipe("tank.hot_out2", "sw.out_a"))).toBe(true);
+    expect(unknown.has(pipe("tank.supply_out", "sw.out_b"))).toBe(true);
+  });
+});
+
 describe("dhwValveBranch", () => {
   it("finds the valve branch that heats the hot water tank", () => {
     expect(dhwValveBranch(template("heat_pump_dhw_floor"), "hp")).toEqual({ valveId: "valve", branch: "a" });

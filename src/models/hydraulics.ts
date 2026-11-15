@@ -194,15 +194,27 @@ export function flowingConnections(
     for (const c of outgoing.get(ref) ?? []) {
       const id = connectionId(c);
       if (flowing.has(id)) continue;
-      flowing.add(id);
       const to = parsePortRef(c.to);
       const node = to && nodes.get(to.nodeId);
+      const state = (node && states.get(node.id)) ?? { active: false };
+      // Mixing switching valve: water arrives only from the circuit (A or B) the valve is switched to.
+      if (to && node && !acceptsInlet(node, to.portId, state)) continue;
+      flowing.add(id);
       if (!to || !node) continue;
-      const state = states.get(node.id) ?? { active: false };
       for (const outlet of outletsFrom(node, to.portId, state)) queue.push(formatPortRef({ nodeId: node.id, portId: outlet }));
     }
   }
   return flowing;
+}
+
+/**
+ * False when a pipe ends in the circuit port (A or B) of a mixing switching valve that is switched to the
+ * other circuit. Without a known position (no entity, transition, error) both circuits count as open.
+ */
+function acceptsInlet(node: SchemaNode, portId: string, state: FlowNodeState): boolean {
+  if (node.type !== "switching_valve" || node.variant === SWITCHING_VALVE_DIVERTING || !state.valveBranch) return true;
+  if (portId !== "out_a" && portId !== "out_b") return true;
+  return portId === `out_${state.valveBranch}`;
 }
 
 /** Visits devices downstream of `start` (port refs); `enter` returns false to stop at a device. */
