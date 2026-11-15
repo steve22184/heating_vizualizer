@@ -6,7 +6,6 @@ import {
   ACCENT,
   CARD_FILL,
   DEFROST_COLOR,
-  HEATER_ACTIVE_COLOR,
   NEUTRAL_STROKE,
   RETURN_COLOR,
   SUPPLY_COLOR,
@@ -227,12 +226,9 @@ export function detailDescription(detail: HeatPumpDetail, t: Translator): string
 // Full drawing, 960 × 540: outdoor air, evaporator and fan on the left, compressor in the middle,
 // plate heat exchanger and the water side on the right.
 const SUCTION = "M 120 120 V 96 H 410 V 170 H 432";
-const DISCHARGE = "M 528 170 H 610 V 150 H 700";
-const LIQUID = "M 700 360 H 600 V 440 H 362";
+const DISCHARGE = "M 528 170 H 610 V 150 H 946";
+const LIQUID = "M 946 360 H 600 V 440 H 362";
 const MIXED = "M 318 440 H 120 V 400";
-const WATER_RETURN = "M 950 430 H 870 M 834 430 H 800 V 360 H 760";
-const WATER_SUPPLY_HEATER = "M 760 150 H 800 V 110 H 840 M 880 110 H 950";
-const WATER_SUPPLY = "M 760 150 H 800 V 110 H 950";
 
 function bottomBar(detail: HeatPumpDetail, t: Translator): SvgResult {
   const { values, performance } = detail;
@@ -266,7 +262,6 @@ function renderFull(detail: HeatPumpDetail, t: Translator): TemplateResult {
   const defrost = detail.operation === "defrost";
   const color = frameColor(detail);
   const ref = refrigerantColors(defrost);
-  const water = detail.pump.active;
   const operationText = detail.operation ? `${defrost ? "❄ " : ""}${t.t(`operation.${detail.operation}`)}` : undefined;
   const pillX = 26 + detail.name.length * 8.6 + 14;
   const electrical = [values.voltage?.text, values.compressor_current?.text].filter(Boolean);
@@ -288,21 +283,14 @@ function renderFull(detail: HeatPumpDetail, t: Translator): TemplateResult {
             fill="${color}" fill-opacity="0.2" stroke="${color}" />
           <text class="pill" x="${pillX + 11}" y="36" style="fill: ${color}">${operationText}</text>`
         : svg``}
-      <text class="chip-label" x="940" y="36" text-anchor="end">${t.t(detail.split ? "detail.split" : "detail.monoblock")}</text>
 
       ${chip(26, 70, temp.outdoor)}
-      <path d="M 30 210 h 34 m -10 -8 l 10 8 l -10 8 M 30 260 h 34 m -10 -8 l 10 8 l -10 8 M 30 310 h 34 m -10 -8 l 10 8 l -10 8"
-        stroke="${NEUTRAL_STROKE}" stroke-width="2" fill="none" opacity="${detail.fan.active ? 1 : 0.4}" />
       <rect x="74" y="120" width="92" height="280" rx="6" fill="${defrost ? DEFROST_COLOR : CARD_FILL}"
         fill-opacity="${defrost ? 0.18 : 1}" stroke="${NEUTRAL_STROKE}" />
       ${Array.from({ length: 13 }, (_, i) => svg`<line x1="${82 + i * 6.5}" y1="128" x2="${82 + i * 6.5}" y2="392" stroke="${NEUTRAL_STROKE}" stroke-opacity="0.6" />`)}
       <text class="chip-label" x="120" y="416" text-anchor="middle">${capitalize(t.t("slots.evaporator"))}</text>
       ${defrost ? svg`<text x="120" y="268" text-anchor="middle" style="fill: ${DEFROST_COLOR}; font-size: 34px">❄</text>` : svg``}
       ${chip(120, 470, temp.evaporator, "middle")}
-
-      <circle cx="252" cy="260" r="66" fill="none" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
-      ${fanBlades(252, 260, 1, detail.fan, defrost)}
-      ${chip(252, 354, detail.fan.reading, "middle")}
 
       <path class="ref" d="${SUCTION}" stroke="${ref.suction}" />
       <path class="ref" d="${DISCHARGE}" stroke="${ref.discharge}" />
@@ -325,23 +313,6 @@ function renderFull(detail: HeatPumpDetail, t: Translator): TemplateResult {
       <text class="chip-label" x="340" y="470" text-anchor="middle">${t.t("detail.expansion_valve")}</text>
       ${detail.split ? chip(652, 470, temp.refrigerant_liquid) : chip(648, 470, temp.refrigerant_liquid, "middle")}
       ${chip(700, 70, temp.refrigerant_gas, "middle")}
-
-      <rect x="700" y="130" width="60" height="250" rx="6" fill="${CARD_FILL}" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
-      ${Array.from({ length: 10 }, (_, i) => svg`<path d="M 706 ${150 + i * 22} l 24 10 l 24 -10" fill="none"
-        stroke="${i % 2 ? REFRIGERANT.hot : RETURN_COLOR}" stroke-width="1.5" opacity="0.7" />`)}
-      <text class="chip-label" x="730" y="398" text-anchor="middle">${t.t("detail.plate_exchanger")}</text>
-
-      <path class="water" d="${WATER_RETURN}" stroke="${RETURN_COLOR}" />
-      <path class="water" d="${detail.heater ? WATER_SUPPLY_HEATER : WATER_SUPPLY}" stroke="${SUPPLY_COLOR}" />
-      ${water ? [WATER_RETURN, detail.heater ? WATER_SUPPLY_HEATER : WATER_SUPPLY].map((d) => flowLines(d, "water-flow")) : svg``}
-      ${pumpSymbol(852, 430, 18, detail.pump.active)}
-      <text class="chip-label" x="852" y="466" text-anchor="middle">${detail.pump.label}</text>
-      ${detail.heater
-        ? svg`
-          <path class="heater ${detail.heater.active ? "on" : ""}" d="M 840 110 l 5 -8 l 5 16 l 5 -16 l 5 16 l 5 -16 l 5 16 l 5 -8"
-            fill="none" stroke="${detail.heater.active ? HEATER_ACTIVE_COLOR : NEUTRAL_STROKE}" stroke-width="2.5" stroke-linejoin="round" />
-          <text class="chip-label" x="860" y="136" text-anchor="middle">${detail.heater.label}</text>`
-        : svg``}
 
       ${chip(880, 404, temp.return, "middle")}
       ${chip(800, 196, temp.hx_outlet)}
