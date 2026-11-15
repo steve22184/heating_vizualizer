@@ -497,6 +497,18 @@ function renderGroundCollector(def: DeviceDefinition, t: Translator, selected: b
   `;
 }
 
+/** Rotating scroll of the compressor, as in the heat pump detail; stands in for the fan in the v2 housing. */
+function compressorScroll(cx: number, cy: number, active: boolean, color: string, duration?: number): ReturnType<typeof svg> {
+  const k = 0.8;
+  const d = `M ${cx} ${cy} m ${-4 * k} 0 a ${4 * k} ${4 * k} 0 1 1 ${8 * k} 0 a ${9 * k} ${9 * k} 0 1 1 ${-18 * k} 0 a ${14 * k} ${14 * k} 0 1 1 ${28 * k} 0 a ${19 * k} ${19 * k} 0 1 1 ${-38 * k} 0 a ${24 * k} ${24 * k} 0 1 1 ${48 * k} 0`;
+  return svg`
+    <g class="fan ${active ? "spinning" : ""}" style="animation-duration: ${duration ?? 0.8}s">
+      <circle cx="${cx}" cy="${cy}" r="${30 * k}" fill="none" stroke="none" />
+      <path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" opacity="${active ? 0.9 : 0.4}" />
+    </g>
+  `;
+}
+
 function renderOutdoorUnit(
   def: DeviceDefinition,
   t: Translator,
@@ -525,13 +537,16 @@ function renderOutdoorUnit(
       <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
       <circle cx="${cx}" cy="${cy}" r="${v2 ? 30 : 34}" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
+      ${v2
+        ? compressorScroll(cx, cy, fan.active, fanColor, fan.duration)
+        : svg`
       <g class="fan ${fan.active ? "spinning" : ""}" style="${fan.duration ? `animation-duration: ${fan.duration}s` : ""}">
         ${[0, 90, 180, 270].map((angle) => svg`
           <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
             fill="${fanColor}" opacity="0.75" />
         `)}
         <circle cx="${cx}" cy="${cy}" r="5" fill="${fanColor}" />
-      </g>
+      </g>`}
       ${defrost
         ? svg`<path class="defrost" d="M ${cx} ${top} v 14 M ${cx - 6} ${top + 4} l 12 6 M ${cx - 6} ${top + 10} l 12 -6"
             stroke="${fanColor}" stroke-width="2" stroke-linecap="round" />`

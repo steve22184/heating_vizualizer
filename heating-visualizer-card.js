@@ -182,13 +182,19 @@ function t(t,e,o,i){var n,r=arguments.length,a=r<3?e:null===i?i=Object.getOwnPro
       <rect x="10" y="12" width="${t.width-20}" height="${t.height-24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${r}" stroke-width="${a}" />
       <circle cx="${l}" cy="${d}" r="${s?30:34}" fill="none" stroke="${c?u:"var(--divider-color, #888)"}" stroke-width="1.5" />
+      ${s?function(t,e,o,i,n){const r=.8;return q`
+    <g class="fan ${o?"spinning":""}" style="animation-duration: ${n??.8}s">
+      <circle cx="${t}" cy="${e}" r="${24}" fill="none" stroke="none" />
+      <path d="${`M ${t} ${e} m -3.2 0 a 3.2 3.2 0 1 1 6.4 0 a 7.2 7.2 0 1 1 -14.4 0 a ${14*r} ${14*r} 0 1 1 ${28*r} 0 a ${19*r} ${19*r} 0 1 1 ${-38*r} 0 a ${24*r} ${24*r} 0 1 1 ${48*r} 0`}" fill="none" stroke="${i}" stroke-width="2.5" stroke-linecap="round" opacity="${o?.9:.4}" />
+    </g>
+  `}(l,d,h.active,u,h.duration):q`
       <g class="fan ${h.active?"spinning":""}" style="${h.duration?`animation-duration: ${h.duration}s`:""}">
         ${[0,90,180,270].map(t=>q`
           <path d="${"M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z"}" transform="translate(${l} ${d}) rotate(${t})"
             fill="${u}" opacity="0.75" />
         `)}
         <circle cx="${l}" cy="${d}" r="5" fill="${u}" />
-      </g>
+      </g>`}
       ${c?q`<path class="defrost" d="M ${l} ${p} v 14 M ${l-6} ${p+4} l 12 6 M ${l-6} ${p+10} l 12 -6"
             stroke="${u}" stroke-width="2" stroke-linecap="round" />`:q``}
       ${_.map((t,e)=>q`
