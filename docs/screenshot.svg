@@ -172,7 +172,7 @@ dialog.detail::backdrop { background: rgba(0, 0, 0, 0.6); }
         </g>
         <text text-anchor="middle" class="device-label" x="90" y="-12">DHW tank</text>
       </g>
-      <g class="node  " data-node-id="mixing_valve_amg4105s" role="img" aria-label="Mixing valve; Temperature sensor – mixed water: 39.4 °C; Ventil: OTVARA" transform="translate(880 150)">
+      <g class="node  " data-node-id="mixing_valve_amg4105s" role="img" aria-label="Mixing valve" transform="translate(880 150)">
         <g transform="rotate(0 50 55)">
     <g class="device device-mixing-valve">
       <line x1="0" y1="70" x2="22" y2="70" stroke-width="3" stroke="#ef5350"></line>
@@ -190,20 +190,6 @@ dialog.detail::backdrop { background: rgba(0, 0, 0, 0.6); }
     </g>
         </g>
         <text text-anchor="middle" class="device-label" x="50" y="-4">Mixing valve</text>
-    <g class="addon-badges" transform="translate(0 116)">
-          <g class="addon-badge addon-temperature " data-addon-index="0">
-            <title>Temperature sensor – mixed water: 39.4 °C</title>
-            <rect stroke-width="1" x="0" y="0" width="67.5" height="18" rx="9" fill="var(--card-background-color, #1c1c1c)" stroke="hsl(113, 75%, 50%)"></rect>
-            <path stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M 7.5 10 V 4 A 1.5 1.5 0 0 1 10.5 4 V 10 M 6 12 A 3 3 0 1 0 12 12 A 3 3 0 1 0 6 12" fill="none" stroke="hsl(113, 75%, 50%)"></path>
-            <text class="device-value addon-value" x="16" y="13">39.4 °C</text>
-          </g>
-          <g class="addon-badge addon-value " data-addon-index="1">
-            <title>Ventil: OTVARA</title>
-            <rect stroke-width="1" x="0" y="22" width="61" height="18" rx="9" fill="var(--card-background-color, #1c1c1c)" stroke="var(--primary-color, #03a9f4)"></rect>
-            <path stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M 6.5 31 A 2.5 2.5 0 1 0 11.5 31 A 2.5 2.5 0 1 0 6.5 31 Z" fill="none" stroke="var(--primary-color, #03a9f4)"></path>
-            <text class="device-value addon-value" x="16" y="35">OTVARA</text>
-          </g>
-    </g>
       </g>
       <g class="node  actionable" data-node-id="circulation_pump_y1pu7bso" role="button" tabindex="0" aria-label="Circulation pump: on, running" transform="translate(1060 180)">
         <g transform="rotate(0 40 40)">
@@ -305,7 +291,7 @@ dialog.detail::backdrop { background: rgba(0, 0, 0, 0.6); }
     </g>
         </g>
       </g>
-      <g class="node  actionable" data-node-id="heat_pump_kczke7m4" role="button" tabindex="0" aria-label="Heat pump: on, running" transform="translate(50 20)">
+      <g class="node  actionable" data-node-id="heat_pump_kczke7m4" role="button" tabindex="0" aria-label="Heat pump: on, running; Temperature sensor – refrigerant gas: 71.5 °C; Temperature sensor – refrigerant liquid: 33.8 °C" transform="translate(50 20)">
         <g transform="rotate(0 85 85)">
     <g class="device device-outdoor-unit">
       <rect x="10" y="12" rx="6" fill="var(--card-background-color, #1c1c1c)" width="150" height="146" stroke="#4caf50" stroke-width="1.5"></rect>
@@ -366,28 +352,28 @@ dialog.detail::backdrop { background: rgba(0, 0, 0, 0.6); }
         </g>
         <text text-anchor="middle" class="device-label" x="50" y="-4">Thermostatic valve</text>
       </g>
-      <g class="overlay-group  actionable" data-overlay-id="o_stav" role="button" tabindex="0" aria-label="Automatika: Auto" transform="translate(50 330)">
-        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="128"></rect>
-        <text class="overlay-text" x="8" y="15" style="">
-          Automatika: Auto
-        </text>
-      </g>
-      <g class="overlay-group  actionable" data-overlay-id="o_hdo" role="button" tabindex="0" aria-label="Vysoky tarif: off" transform="translate(50 360)">
-        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="135"></rect>
-        <text class="overlay-text" x="8" y="15" style="">
-          Vysoky tarif: off
-        </text>
-      </g>
       <g class="overlay-group  actionable" data-overlay-id="o_izba" role="button" tabindex="0" aria-label="Obyvacka temp: 23.6 °C" transform="translate(1210 120)">
         <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="170"></rect>
         <text class="overlay-text" x="8" y="15" style="">
           Obyvacka temp: 23.6 °C
         </text>
       </g>
-      <g class="overlay-group  actionable" data-overlay-id="o_spiatocka" role="button" tabindex="0" aria-label="Spiatocka: 31.6 °C" transform="translate(1030 360)">
+      <g class="overlay-group  actionable" data-overlay-id="o_stav" role="button" tabindex="0" aria-label="Automatika: Auto" transform="translate(-20 260)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="128"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Automatika: Auto
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_spiatocka" role="button" tabindex="0" aria-label="Spiatocka: 28.4 °C" transform="translate(1080 330)">
         <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="142"></rect>
         <text class="overlay-text" x="8" y="15" style="">
-          Spiatocka: 31.6 °C
+          Spiatocka: 28.4 °C
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_hdo" role="button" tabindex="0" aria-label="Vysoky tarif: off" transform="translate(-20 290)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="135"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Vysoky tarif: off
         </text>
       </g>
       <g class="overlay-group  actionable" data-overlay-id="o_chl_zo_zeme" role="button" tabindex="0" aria-label="Zo zeme: 2.1 °C" transform="translate(-60 52)">
@@ -412,6 +398,42 @@ dialog.detail::backdrop { background: rgba(0, 0, 0, 0.6); }
         <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="121"></rect>
         <text class="overlay-text" x="8" y="15" style="">
           vym→TC: 33.8 °C
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_rezim_podlahy" role="button" tabindex="0" aria-label="Rezim podlahy: ekviterma" transform="translate(-20 320)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="184"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Rezim podlahy: ekviterma
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_rucna_teplota" role="button" tabindex="0" aria-label="Ciel vody: 33.0 °C" transform="translate(-20 350)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="142"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Ciel vody: 33.0 °C
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_ventil_teplota" role="button" tabindex="0" aria-label="Teplota ventilu: 33.1 °C" transform="translate(885 65)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="184"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Teplota ventilu: 33.1 °C
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_ventil_stav" role="button" tabindex="0" aria-label="Ventil: STOP" transform="translate(885 95)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="100"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Ventil: STOP
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_sezona" role="button" tabindex="0" aria-label="Sezona: zima" transform="translate(-20 380)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="100"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Sezona: zima
+        </text>
+      </g>
+      <g class="overlay-group  actionable" data-overlay-id="o_vonku" role="button" tabindex="0" aria-label="Teplota vonku: 2.0 °C" transform="translate(-20 410)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="163"></rect>
+        <text class="overlay-text" x="8" y="15" style="">
+          Teplota vonku: 2.0 °C
         </text>
       </g>
       </svg>
