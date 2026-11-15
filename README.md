@@ -193,6 +193,10 @@ Devices only model what Home Assistant can observe – a boiler has no fuel type
 - `template`: `{{ state }}` and `{{ attr('attribute') }}`; without a template the value is formatted by Home Assistant.
 - `rules`: `condition: state` (with `state`) or `condition: numeric` (with `above` and/or `below`; all bounds must hold, like `numeric_state`). `entity` defaults to the overlay entity. `effect` supports `color` (theme color such as `red` or any CSS color), `visible` and `class`.
 
+### Example
+
+[`examples/stm32-regulator.yaml`](examples/stm32-regulator.yaml) is a complete card of a real installation: ground-source heat pump, accumulator tank, switching valve (upper or middle part of the tank), mixing valve, circulation pump and floor heating manifold, with overlays for the heat pump circuit, room and outdoor temperature. The entity ids belong to a DIY regulator; replace them with your own.
+
 ## Translations
 
 The card follows the Home Assistant language. Texts live in [`src/translations/`](src/translations); add a language by adding `<language>.json` with the same keys as `en.json` (a test checks that all files have the same keys).

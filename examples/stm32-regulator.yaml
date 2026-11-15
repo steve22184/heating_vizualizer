@@ -1,0 +1,251 @@
+# Example: heating system driven by a DIY STM32 regulator (MQTT discovery, device prefix regulator_kurenia_).
+# Ground-source heat pump, 600 l accumulator, switching valve (upper/middle tank), mixing valve,
+# circulation pump and floor heating manifold. Entity ids are specific to that regulator - replace them with yours.
+type: custom:heating-visualizer-card
+schema_version: 2
+nodes:
+  - id: tank_nl8y3tpc
+    type: tank
+    position:
+      x: 330
+      'y': 20
+    addons:
+      - type: heat_exchanger
+      - type: heat_exchanger
+      - type: dhw
+      - type: direct_heating
+        id: heater
+      - type: electric_heater
+        entity_id: binary_sensor.regulator_kurenia_rele_spirala
+      - type: temperature
+        slot: top
+        entity_id: sensor.regulator_kurenia_aku_hore
+      - type: temperature
+        slot: upper
+        entity_id: sensor.regulator_kurenia_aku_stred_hore
+      - type: temperature
+        slot: lower
+        entity_id: sensor.regulator_kurenia_aku_stred_dole
+      - type: temperature
+        slot: bottom
+        entity_id: sensor.regulator_kurenia_aku_dole
+    scale: 1.4
+    variant: dual_coil
+    volume: 600
+  - id: mixing_valve_amg4105s
+    type: mixing_valve
+    position:
+      x: 880
+      'y': 150
+  - id: circulation_pump_y1pu7bso
+    type: circulation_pump
+    position:
+      x: 1060
+      'y': 180
+    entity_id: binary_sensor.regulator_kurenia_rele_cerpadlo
+  - id: manifold_4nw3h9qh
+    type: manifold
+    position:
+      x: 1210
+      'y': 190
+    addons:
+      - type: loop
+      - type: loop
+      - type: loop
+      - type: loop
+  - id: expansion_vessel_hxoqvbqt
+    type: expansion_vessel
+    position:
+      x: 340
+      'y': -180
+  - id: water_supply_s80ddfno
+    type: water_supply
+    position:
+      x: 580
+      'y': 330
+    rotation: 180
+  - id: dhw_outlet_r8w9navu
+    type: dhw_outlet
+    position:
+      x: 730
+      'y': -180
+  - id: junction_rk5dgsws
+    type: junction
+    position:
+      x: 1000
+      'y': 340
+    rotation: 90
+  - id: heat_pump_kczke7m4
+    type: heat_pump
+    position:
+      x: 50
+      'y': 20
+    variant: v2
+    entity_id: binary_sensor.regulator_kurenia_rele_tc
+    tap_action:
+      action: detail
+    addons:
+      - type: temperature
+        slot: refrigerant_gas
+        entity_id: sensor.regulator_kurenia_chladivo_z_tc_do_vymennika
+        hidden: true
+      - type: temperature
+        slot: refrigerant_liquid
+        entity_id: sensor.regulator_kurenia_chladivo_z_vymennika_do_tc
+        hidden: true
+  - id: ground_collector_1uungze7
+    type: ground_collector
+    position:
+      x: -170
+      'y': 70
+  - id: switching_valve_tvwfu55p
+    entity_id: sensor.regulator_kurenia_prepinaci_ventil_poloha
+    branch_a_value: hore
+    branch_b_value: stred
+    type: switching_valve
+    position:
+      x: 710
+      'y': 150
+  - id: thermostatic_valve_kwxe8949
+    type: thermostatic_valve
+    position:
+      x: 510
+      'y': -180
+connections:
+  - from: circulation_pump_y1pu7bso.out
+    to: manifold_4nw3h9qh.supply_in
+  - from: tank_nl8y3tpc.hot_out
+    to: expansion_vessel_hxoqvbqt.connection
+  - from: mixing_valve_amg4105s.mixed_out
+    to: circulation_pump_y1pu7bso.in
+  - from: water_supply_s80ddfno.out
+    to: tank_nl8y3tpc.coil2_in
+  - from: manifold_4nw3h9qh.return_out
+    to: junction_rk5dgsws.in
+  - from: junction_rk5dgsws.out_bottom
+    to: mixing_valve_amg4105s.return_in
+  - from: junction_rk5dgsws.out_top
+    to: tank_nl8y3tpc.return_in
+  - from: ground_collector_1uungze7.hot_out
+    to: heat_pump_kczke7m4.v2_top_left
+  - from: heat_pump_kczke7m4.v2_bottom_left
+    to: ground_collector_1uungze7.cold_in
+  - from: heat_pump_kczke7m4.v2_top
+    to: tank_nl8y3tpc.coil_in
+  - from: tank_nl8y3tpc.coil_out
+    to: heat_pump_kczke7m4.v2_bottom
+  - from: tank_nl8y3tpc.hot_out2
+    to: switching_valve_tvwfu55p.out_a
+    route:
+      - - 680
+        - 60
+      - - 680
+        - 220
+  - from: tank_nl8y3tpc.supply_out
+    to: switching_valve_tvwfu55p.out_b
+    route:
+      - - 630
+        - 220
+      - - 630
+        - 280
+  - from: switching_valve_tvwfu55p.in
+    to: mixing_valve_amg4105s.hot_in
+  - from: thermostatic_valve_kwxe8949.mixed_out
+    to: dhw_outlet_r8w9navu.in
+  - from: tank_nl8y3tpc.coil2_out
+    to: thermostatic_valve_kwxe8949.hot_in
+  - from: water_supply_s80ddfno.out
+    to: thermostatic_valve_kwxe8949.cold_in
+overlays:
+  - id: o_izba
+    name: Obyvacka temp
+    entity_id: sensor.regulator_kurenia_izbova_teplota_v_regulatori
+    position:
+      x: 1210
+      'y': 120
+  - id: o_stav
+    name: Automatika
+    entity_id: sensor.regulator_kurenia_stav_automatiky
+    position:
+      x: -20
+      'y': 260
+  - id: o_spiatocka
+    name: Spiatocka
+    entity_id: sensor.regulator_kurenia_podlaha_spiatocka
+    position:
+      x: 1080
+      'y': 330
+  - id: o_hdo
+    name: Vysoky tarif
+    entity_id: binary_sensor.regulator_kurenia_vysoky_tarif_hdo
+    position:
+      x: -20
+      'y': 290
+    rules:
+      - condition: state
+        state: 'on'
+        effect:
+          color: orange
+  - id: o_chl_zo_zeme
+    name: Zo zeme
+    entity_id: sensor.regulator_kurenia_chladivo_zo_zemneho_vymennika
+    position:
+      x: -60
+      'y': 52
+  - id: o_chl_do_zeme
+    name: Do zeme
+    entity_id: sensor.regulator_kurenia_chladivo_do_zemneho_vymennika
+    position:
+      x: -60
+      'y': 138
+  - id: o_chl_tc_vym
+    name: TC→vym
+    entity_id: sensor.regulator_kurenia_chladivo_z_tc_do_vymennika
+    position:
+      x: 225
+      'y': 52
+  - id: o_chl_vym_tc
+    name: vym→TC
+    entity_id: sensor.regulator_kurenia_chladivo_z_vymennika_do_tc
+    position:
+      x: 225
+      'y': 138
+  - id: o_rezim_podlahy
+    name: Rezim podlahy
+    entity_id: select.regulator_kurenia_rezim_teploty_podlahy
+    position:
+      x: -20
+      'y': 320
+  - id: o_rucna_teplota
+    name: Ciel vody
+    entity_id: sensor.regulator_kurenia_cielova_teplota_podlahy
+    tap_action:
+      action: more-info
+      entity: number.regulator_kurenia_rucna_teplota_podlahy
+    position:
+      x: -20
+      'y': 350
+  - id: o_ventil_teplota
+    name: Teplota ventilu
+    entity_id: sensor.regulator_kurenia_teplota_3_cestneho_ventilu
+    position:
+      x: 885
+      'y': 65
+  - id: o_ventil_stav
+    name: Ventil
+    entity_id: sensor.regulator_kurenia_ventil_stav
+    position:
+      x: 885
+      'y': 95
+  - id: o_sezona
+    name: Sezona
+    entity_id: sensor.regulator_kurenia_rezim_leto_zima
+    position:
+      x: -20
+      'y': 380
+  - id: o_vonku
+    name: Teplota vonku
+    entity_id: sensor.regulator_kurenia_vonkajsia_teplota
+    position:
+      x: -20
+      'y': 410
