@@ -2,7 +2,7 @@
 # Resource: /local/komfovent-card.js (JavaScript module)
 # Entities come from komfovent_configuration.yaml in this folder.
 type: custom:komfovent-card
-name: Rekuperácia
+# name: Ventilation       # optional, defaults to the translated title
 show_controls: true
 show_schedule: true          # weekly schedule (needs the two schedule sensors)
 modbus_hub: komfovent_c4     # hub used to write the schedule

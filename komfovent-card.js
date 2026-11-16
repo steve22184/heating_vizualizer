@@ -7,7 +7,7 @@
  *
  * Card:
  *   type: custom:komfovent-card
- *   name: Rekuperácia            # optional
+ *   name: Ventilation            # optional (default: translated title)
  *   show_controls: true          # optional
  *   show_schedule: true          # optional, weekly schedule (registers 1300–1362)
  *   modbus_hub: komfovent_c4     # optional, hub name for writing the schedule
@@ -19,7 +19,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.1.0";
+const VERSION = "1.1.1";
 
 const DEFAULT_ENTITIES = {
   power: "switch.komfovent_power",
@@ -219,7 +219,7 @@ class KomfoventCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { name: "Rekuperácia" };
+    return {};
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────

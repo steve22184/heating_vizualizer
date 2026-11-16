@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-Komfovent C4 – test Modbus komunikácie cez Waveshare RS485 to POE ETH (B)
+Komfovent C4 – Modbus communication test through a Waveshare RS485 TO POE ETH (B)
 
-Inštalácia:  pip install pymodbus
-Waveshare:   Transfer Protocol = Modbus_TCP Protocol (brána TCP -> RTU), 19200 8E1
+Install:     pip install pymodbus
+Waveshare:   Transfer Protocol = Modbus_TCP Protocol (TCP -> RTU gateway), 19200 8E1
 
-1) Hľadanie ID (skúsi viac ID, prečíta 1000, 1006 = Modbus adresa, 1200, 1201):
+1) Find the ID (tries several IDs, reads 1000, 1006 = Modbus address, 1200, 1201):
      python komfovent_test.py 192.168.100.200
 
-2) Záťažový test s pripojeným panelom (percento chýb / kolízií):
+2) Load test with the panel connected (error / collision rate):
      python komfovent_test.py 192.168.100.200 --id 20 --loop 300
-   (300 čítaní, jedno každé 0,5 s – vypíše úspešnosť a časy odozvy)
+   (300 reads, one every 0.5 s – prints success rate and response times)
 
-Adresy v tomto skripte sú podľa manuálu C4 (1-based), na zbernicu sa posiela
+Addresses in this script follow the C4 manual (1-based); the wire address is
 adresa - 1, rovnako ako v opravenom HA YAML.
 """
 import argparse
@@ -23,12 +23,12 @@ import time
 from pymodbus.client import ModbusTcpClient
 
 IDS = [1, 20, 254, 2, 3, 4, 5, 10, 100]
-REGS = [("Start/Stop (1=beží)", 1000), ("Modbus adresa (reg 1006)", 1006),
-        ("Teplota prívodu x10", 1200), ("Žiadaná teplota x10", 1201)]
+REGS = [("Start/Stop (1=running)", 1000), ("Modbus address (reg 1006)", 1006),
+        ("Supply temp x10", 1200), ("Setpoint x10", 1201)]
 
 
 def read(client, doc_addr, count, unit):
-    """Číta holding registre podľa čísla z manuálu. Kompatibilné s pymodbus 3.0–3.16."""
+    """Read holding registers by manual number. Works with pymodbus 3.0–3.16."""
     addr = doc_addr - 1
     try:
         return client.read_holding_registers(addr, count=count, device_id=unit)
@@ -45,10 +45,10 @@ def scan(client):
             try:
                 rr = read(client, reg, 1, unit)
             except Exception as e:
-                print(f"  {reg} {name}: timeout – ID {unit} neodpovedá, preskakujem")
+                print(f"  {reg} {name}: timeout – ID {unit} does not answer, skipping")
                 break
             if rr.isError():
-                # odpoveď s výnimkou = jednotka počuje (komunikácia OK), len zlá adresa/ID
+                # exception response = the unit hears us (communication OK), only address/ID wrong
                 print(f"  {reg} {name}: {rr}")
             else:
                 ok = True
@@ -59,16 +59,16 @@ def scan(client):
             found.append(unit)
     print("\n" + "=" * 60)
     if found:
-        print(f"Jednotka odpovedá na ID: {found}")
-        print("Do HA YAML daj 'slave:' = hodnota registra 1006 (ak odpovedá), inak prvé nájdené ID.")
+        print(f"The unit answers on ID: {found}")
+        print("Use the value of register 1006 as 'slave:' in Home Assistant (never 254).")
     else:
-        print("Žiadne ID neodpovedalo. Skontroluj Transfer Protocol = Modbus_TCP Protocol,")
-        print("či nie je k Waveshare pripojený iný klient (HA, VirCom) a kabeláž.")
+        print("No ID answered. Check Transfer Protocol = Modbus_TCP Protocol,")
+        print("that no other client (Home Assistant, VirCom) is connected, and the wiring.")
 
 
 def loop(client, unit, n, interval):
     ok, err, lat = 0, 0, []
-    print(f"Záťažový test: ID {unit}, {n} čítaní 1000..1001 každých {interval} s (Ctrl+C = koniec)\n")
+    print(f"Load test: ID {unit}, {n} reads of 1000..1001 every {interval} s (Ctrl+C = stop)\n")
     try:
         for i in range(1, n + 1):
             t0 = time.monotonic()
@@ -83,38 +83,38 @@ def loop(client, unit, n, interval):
                 lat.append(dt)
             else:
                 err += 1
-                print(f"  #{i}: CHYBA ({dt:.0f} ms)")
+                print(f"  #{i}: ERROR ({dt:.0f} ms)")
             if i % 20 == 0:
-                print(f"  {i}/{n}  OK {ok}  chyby {err}  ({100 * err / i:.1f} %)")
+                print(f"  {i}/{n}  OK {ok}  errors {err}  ({100 * err / i:.1f} %)")
             time.sleep(interval)
     except KeyboardInterrupt:
         pass
     total = ok + err
     print("\n" + "=" * 60)
     if total:
-        print(f"Úspešnosť: {ok}/{total}  ({100 * ok / total:.1f} %),  chyby {100 * err / total:.1f} %")
+        print(f"Success: {ok}/{total}  ({100 * ok / total:.1f} %),  errors {100 * err / total:.1f} %")
     if lat:
-        print(f"Odozva OK čítaní: min {min(lat):.0f}  medián {statistics.median(lat):.0f}  "
+        print(f"Response time of OK reads: min {min(lat):.0f}  median {statistics.median(lat):.0f}  "
               f"max {max(lat):.0f} ms")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Test Modbus komunikácie s Komfovent C4")
+    ap = argparse.ArgumentParser(description="Modbus communication test for a Komfovent C4")
     ap.add_argument("host", nargs="?", default="192.168.100.200")
     ap.add_argument("--port", type=int, default=502)
-    ap.add_argument("--id", type=int, help="Modbus ID pre záťažový test")
-    ap.add_argument("--loop", type=int, default=0, help="počet čítaní v záťažovom teste")
-    ap.add_argument("--interval", type=float, default=0.5, help="interval medzi čítaniami (s)")
+    ap.add_argument("--id", type=int, help="Modbus ID for the load test")
+    ap.add_argument("--loop", type=int, default=0, help="number of reads in the load test")
+    ap.add_argument("--interval", type=float, default=0.5, help="interval between reads (s)")
     args = ap.parse_args()
 
     client = ModbusTcpClient(args.host, port=args.port, timeout=2, retries=0)
     if not client.connect():
-        sys.exit(f"Neviem sa pripojiť na {args.host}:{args.port} – skontroluj IP, alebo či nie je "
-                 f"pripojený iný klient (VirCom, HA).")
+        sys.exit(f"Cannot connect to {args.host}:{args.port} – check the IP and that no other "
+                 f"client (VirCom, Home Assistant) is connected.")
     try:
         if args.loop:
             if args.id is None:
-                sys.exit("Pre --loop zadaj aj --id")
+                sys.exit("--loop needs --id")
             loop(client, args.id, args.loop, args.interval)
         else:
             scan(client)

@@ -2,7 +2,7 @@
 
 Step-by-step from wiring a Waveshare RS485 gateway to the C4 controller up to the Komfovent Card on a dashboard. The wall panel stays connected and keeps working.
 
-![Komfovent Card](preview.png)
+![Komfovent Card](preview.svg)
 
 - **Tested on** Komfovent RECU-300VEB-R-EC-C4, Waveshare RS485 TO POE ETH (B) firmware V1.523, Home Assistant 2026.11.
 - **Result** – reading and writing over Modbus TCP with the panel on the same bus, 99.7 % successful reads.
@@ -134,7 +134,7 @@ logger:
     pymodbus.logging: error
 ```
 
-Check the configuration (Developer tools → YAML → *Check configuration*), restart and verify that the entities have values, then change `number.komfovent_temp_setpoint` and watch the panel follow. Run the script *Komfovent: Synchronizovať hodiny* once by hand.
+Check the configuration (Developer tools → YAML → *Check configuration*), restart and verify that the entities have values, then change `number.komfovent_temp_setpoint` and watch the panel follow. Run the script *Komfovent: Sync clock* once by hand.
 
 ## 7. Komfovent Card
 
@@ -145,7 +145,6 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 
    ```yaml
    type: custom:komfovent-card
-   name: Rekuperácia
    ```
 
 On cards wider than about 820 px the schema and the controls sit side by side and the schema height is limited, so a panel/full-width dashboard fits the screen without a scrollbar; on phones everything stacks.

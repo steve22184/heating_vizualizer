@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 """
-Fake Komfovent C4 – simulátor jednotky
-(inšpirované scripts/modbus_server.py z github.com/AlgMi/komfovent_c4)
+Fake Komfovent C4 – unit simulator
+(inspired by scripts/modbus_server.py from github.com/AlgMi/komfovent_c4)
 
-Slúži dvom účelom:
+Two uses:
 
-A) TEST HOME ASSISTANTU BEZ JEDNOTKY (Modbus TCP)
-     python fake_c4.py --tcp                 (počúva na porte 5020)
-   V HA dočasne zmeň v modbus hube host na IP tohto PC a port na 5020.
-   Ak entity ukazujú hodnoty, YAML (adresy, ID, dátové typy) je v poriadku.
+A) TEST HOME ASSISTANT WITHOUT THE UNIT (Modbus TCP)
+     python fake_c4.py --tcp                 (listens on port 5020)
+   Point the Home Assistant modbus hub temporarily to this PC, port 5020.
+   If the entities get values, the YAML (addresses, ID, data types) is right.
 
-B) TEST WAVESHARE + HA BEZ JEDNOTKY (Modbus RTU cez USB-RS485 prevodník)
+B) TEST GATEWAY + HOME ASSISTANT WITHOUT THE UNIT (Modbus RTU via a USB-RS485 adapter)
      python fake_c4.py --serial COM5            (Windows)
      python fake_c4.py --serial /dev/ttyUSB0    (Linux)
-   USB-RS485 prevodník pripoj na svorky Waveshare: A->TDA, B->TDB, GND->GND.
-   Waveshare nechaj v režime "Modbus TCP to RTU", 19200 8E1.
-   Ak HA / komfovent_test.py dostane odpovede, Waveshare aj HA fungujú
-   a problém je čisto na strane jednotky (piny, A/B, parita, Modbus ID).
+   Wire the USB-RS485 adapter to the gateway terminals: A->TDA, B->TDB, GND->GND.
+   Keep the gateway in "Modbus TCP to RTU" mode, 19200 8E1.
+   If Home Assistant / komfovent_test.py gets answers, gateway and Home Assistant
+   work and any problem is on the unit side (pins, A/B, parity, Modbus ID).
 
-Odpovedá na Modbus ID z --ids (default 1, 20, 254); na iné ID mlčí ako skutočná
-jednotka. Registre sú z dumpu skutočnej C4 (C4_registers.json, z AlgMi repa).
-Kľúče v dumpe sú čísla registrov z manuálu (od 1); na zbernici sa adresuje
-číslo - 1, rovnako ako na skutočnej jednotke. Podporuje funkcie 03, 06 a 16.
-Neexistujúci register -> výnimka 02 (illegal address). Zápisy sa vypisujú.
+Answers the Modbus IDs from --ids (default 1, 20, 254) and stays silent on others,
+like the real unit. Registers come from a real C4 dump (C4_registers.json, from the
+AlgMi repository, MIT). Keys are manual register numbers (1-based); on the wire the
+address is number - 1, as on the real unit. Function codes 03, 06 and 16.
+Unknown register -> exception 02 (illegal address). Writes are logged.
 
-Závislosti: žiadne pre --tcp; pre --serial: pip install pyserial
+Dependencies: none for --tcp; for --serial: pip install pyserial
 """
 import argparse
 import asyncio
@@ -56,7 +56,7 @@ def crc16(data: bytes) -> int:
 
 class FakeC4:
     def __init__(self, dump: dict, ids: list[int]):
-        # kľúč = číslo registra z manuálu (1-based)
+        # key = manual register number (1-based)
         self.regs = {}
         for start, values in dump.items():
             for i, v in enumerate(values):
@@ -64,7 +64,7 @@ class FakeC4:
         self.ids = set(ids)
 
     def handle_pdu(self, uid: int, pdu: bytes) -> bytes | None:
-        """Spracuje PDU (fc + dáta). Vráti odpoveď PDU alebo None (mlčať)."""
+        """Handle a PDU (fc + data). Returns the response PDU or None (stay silent)."""
         if uid not in self.ids:
             return None
         fc = pdu[0]
@@ -73,7 +73,7 @@ class FakeC4:
                 addr, cnt = struct.unpack(">HH", pdu[1:5])
                 regs = range(addr + 1, addr + 1 + cnt)
                 if not 1 <= cnt <= 125 or any(r not in self.regs for r in regs):
-                    log(f"ID{uid} READ  {addr + 1}..{addr + cnt}  -> výnimka 02 (neexistuje)")
+                    log(f"ID{uid} READ  {addr + 1}..{addr + cnt}  -> exception 02 (not present)")
                     return bytes([fc | 0x80, 0x02])
                 log(f"ID{uid} READ  {addr + 1}..{addr + cnt}")
                 return bytes([fc, cnt * 2]) + b"".join(struct.pack(">H", self.regs[r]) for r in regs)
@@ -103,7 +103,7 @@ class FakeC4:
 
 async def tcp_client(dev: FakeC4, reader, writer):
     peer = writer.get_extra_info("peername")
-    log(f"TCP klient pripojený: {peer}")
+    log(f"TCP client connected: {peer}")
     try:
         while True:
             hdr = await reader.readexactly(7)
@@ -111,34 +111,34 @@ async def tcp_client(dev: FakeC4, reader, writer):
             pdu = await reader.readexactly(length - 1)
             resp = dev.handle_pdu(uid, pdu)
             if resp is None:
-                continue                              # mlčíme -> klient dostane timeout
+                continue                              # silent -> the client times out
             writer.write(struct.pack(">HHHB", tid, proto, len(resp) + 1, uid) + resp)
             await writer.drain()
     except (asyncio.IncompleteReadError, ConnectionError):
         pass
     finally:
-        log(f"TCP klient odpojený: {peer}")
+        log(f"TCP client disconnected: {peer}")
         writer.close()
 
 
 async def run_tcp(dev: FakeC4, host: str, port: int):
     server = await asyncio.start_server(lambda r, w: tcp_client(dev, r, w), host, port)
-    log(f"Fake C4 – Modbus TCP na {host}:{port}, ID {sorted(dev.ids)}  (Ctrl+C = koniec)")
+    log(f"Fake C4 – Modbus TCP on {host}:{port}, ID {sorted(dev.ids)}  (Ctrl+C = stop)")
     async with server:
         await server.serve_forever()
 
 
-# ── Modbus RTU (sériová linka) ────────────────────────────────────────────────
+# ── Modbus RTU (serial line) ────────────────────────────────────────────────────
 
 def run_serial(dev: FakeC4, port: str, baud: int, parity: str):
     try:
         import serial
     except ImportError:
-        sys.exit("Pre --serial treba: pip install pyserial")
+        sys.exit("--serial needs: pip install pyserial")
     char_t = 11 / baud
-    gap = max(3.5 * char_t, 0.00175)                 # koniec rámca podľa Modbus RTU
+    gap = max(3.5 * char_t, 0.00175)                 # end of frame per Modbus RTU
     ser = serial.Serial(port, baud, bytesize=8, parity=parity, stopbits=1, timeout=gap)
-    log(f"Fake C4 – Modbus RTU na {port}, {baud} 8{parity}1, ID {sorted(dev.ids)}  (Ctrl+C = koniec)")
+    log(f"Fake C4 – Modbus RTU on {port}, {baud} 8{parity}1, ID {sorted(dev.ids)}  (Ctrl+C = stop)")
     buf = bytearray()
     while True:
         chunk = ser.read(256)
@@ -147,9 +147,9 @@ def run_serial(dev: FakeC4, port: str, baud: int, parity: str):
             continue
         if not buf:
             continue
-        frame, buf = bytes(buf), bytearray()         # ticho -> koniec rámca
+        frame, buf = bytes(buf), bytearray()         # silence -> end of frame
         if len(frame) < 4 or crc16(frame[:-2]) != (frame[-2] | frame[-1] << 8):
-            log(f"zlý rámec / CRC ({len(frame)} B): {frame.hex()}  -> skontroluj baud/paritu/A-B")
+            log(f"bad frame / CRC ({len(frame)} B): {frame.hex()}  -> check baud/parity/A-B")
             continue
         resp = dev.handle_pdu(frame[0], frame[1:-2])
         if resp is None:
@@ -164,19 +164,19 @@ def main():
     ap = argparse.ArgumentParser(description="Fake Komfovent C4 (Modbus TCP alebo RTU)")
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--tcp", action="store_true", help="Modbus TCP server")
-    mode.add_argument("--serial", metavar="PORT", help="Modbus RTU na sériovom porte (USB-RS485)")
+    mode.add_argument("--serial", metavar="PORT", help="Modbus RTU on a serial port (USB-RS485)")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=5020, help="TCP port (default 5020)")
     ap.add_argument("--baud", type=int, default=19200)
     ap.add_argument("--parity", default="E", choices=["E", "N", "O"])
-    ap.add_argument("--ids", default="1,20,254", help="Modbus ID, na ktoré odpovedať (čiarkou)")
+    ap.add_argument("--ids", default="1,20,254", help="Modbus IDs to answer (comma separated)")
     ap.add_argument("--input", default=str(Path(__file__).with_name("C4_registers.json")))
     args = ap.parse_args()
 
     try:
         dump = json.loads(Path(args.input).read_text())
     except (OSError, json.JSONDecodeError) as e:
-        sys.exit(f"Neviem načítať dump {args.input}: {e}")
+        sys.exit(f"Cannot load dump {args.input}: {e}")
     dev = FakeC4(dump, [int(x) for x in args.ids.split(",")])
 
     try:

@@ -4,7 +4,7 @@ Home Assistant setup for a Komfovent RECU-300VEB-R-EC-C4 ventilation unit (C4 co
 connected over RS485 through a Waveshare RS485 TO POE ETH (B) gateway, with the wall panel
 still connected.
 
-![Komfovent Card](preview.png)
+![Komfovent Card](preview.svg)
 
 ## Files
 

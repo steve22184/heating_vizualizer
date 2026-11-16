@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 """
-Komfovent C4 – pasívny odpočúvač RS485 zbernice cez Waveshare RS485 to POE ETH (B)
+Komfovent C4 – passive RS485 bus sniffer through a Waveshare RS485 TO POE ETH (B)
 
-Skript NIČ NEVYSIELA – iba počúva, takže komunikáciu panel <-> jednotka neruší.
+The script SENDS NOTHING – it only listens, so panel <-> unit traffic is not disturbed.
 
-PRÍPRAVA WAVESHARE (webové rozhranie / Vircom):
-  - Protocol / Transfer protocol:  None   (transparentný režim, NIE "Modbus TCP to RTU")
-  - Work mode: TCP Server, port 502 (alebo iný – zadaj cez --port)
+WAVESHARE SETUP (web page / VirCom):
+  - Protocol / Transfer protocol:  None   (transparent, NOT "Modbus TCP to RTU")
+  - Work mode: TCP Server, port 502 (or another one – pass it with --port)
   - Serial: 19200, 8, Even, 1
-  - Ak má nastavenie typu "packet interval / frame gap / packing time",
-    daj ho čo najmenšie (napr. 1–5 ms) – inak Waveshare zlepí viac rámcov
-    do jedného TCP paketu a časy budú menej presné.
-  - V HA dočasne vypni modbus (Waveshare často prijme len 1 TCP klienta).
-  - Ovládací panel nechaj ZAPOJENÝ – o to ide.
+  - Set "Max Interval" / packet interval as small as possible (e.g. 3 ms),
+    otherwise the gateway merges frames into one TCP packet and timing gets coarse.
+  - Disable the Home Assistant Modbus hub meanwhile (the gateway accepts few TCP clients).
+  - Keep the wall panel CONNECTED – that is the point.
 
-Spustenie (stačí čistý Python 3.8+, žiadne knižnice):
+Usage (plain Python 3.8+, no libraries):
   python komfovent_sniffer.py 192.168.100.200
   python komfovent_sniffer.py 192.168.100.200 --time 300 --csv log.csv
-  python komfovent_sniffer.py 192.168.100.200 --quiet      # len štatistika
-Ukončenie: Ctrl+C alebo po uplynutí --time. Na konci vypíše štatistiku.
+  python komfovent_sniffer.py 192.168.100.200 --quiet      # statistics only
+Stop with Ctrl+C or after --time; statistics are printed at the end.
 """
 import argparse
 import csv
@@ -46,12 +45,12 @@ def crc_ok(frame: bytes) -> bool:
 
 
 def airtime(nbytes: int) -> float:
-    """Čas vysielania rámca na zbernici v sekundách."""
+    """Time a frame occupies the bus, in seconds."""
     return nbytes * BITS_PER_CHAR / BAUD
 
 
 def candidate_lengths(buf: bytes):
-    """Možné dĺžky Modbus RTU rámca začínajúceho na buf[0] (request aj response)."""
+    """Possible lengths of a Modbus RTU frame starting at buf[0] (request or response)."""
     fc = buf[1]
     if fc & 0x80:
         return [5]                              # exception response
@@ -71,7 +70,7 @@ def candidate_lengths(buf: bytes):
 
 
 def try_parse(buf: bytes):
-    """Vráti dĺžku platného rámca, None = treba viac dát, -1 = zahoď bajt (resync)."""
+    """Length of a valid frame, None = need more data, -1 = drop a byte (resync)."""
     if len(buf) < 4:
         return None
     cands = sorted(set(candidate_lengths(buf)))
@@ -117,25 +116,25 @@ def fmt_stats(name, values, unit="ms", scale=1000):
     if not values:
         return f"  {name:<44} —"
     v = [x * scale for x in values]
-    return (f"  {name:<44} min {min(v):7.1f}  medián {statistics.median(v):7.1f}  "
-            f"priemer {statistics.mean(v):7.1f}  max {max(v):7.1f} {unit}  (n={len(v)})")
+    return (f"  {name:<44} min {min(v):7.1f}  median {statistics.median(v):7.1f}  "
+            f"mean {statistics.mean(v):7.1f}  max {max(v):7.1f} {unit}  (n={len(v)})")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Pasívny Modbus RTU odpočúvač cez Waveshare (transparentný režim)")
+    ap = argparse.ArgumentParser(description="Passive Modbus RTU sniffer through a Waveshare gateway (transparent mode)")
     ap.add_argument("host")
     ap.add_argument("--port", type=int, default=502)
-    ap.add_argument("--time", type=float, default=0, help="dĺžka merania v s (0 = do Ctrl+C)")
-    ap.add_argument("--csv", help="uložiť všetky rámce do CSV")
-    ap.add_argument("--quiet", action="store_true", help="nevypisovať jednotlivé rámce")
+    ap.add_argument("--time", type=float, default=0, help="duration in s (0 = until Ctrl+C)")
+    ap.add_argument("--csv", help="save all frames to CSV")
+    ap.add_argument("--quiet", action="store_true", help="do not print individual frames")
     args = ap.parse_args()
 
     try:
         sock = socket.create_connection((args.host, args.port), timeout=5)
     except OSError as e:
-        sys.exit(f"Neviem sa pripojiť na {args.host}:{args.port}: {e}")
+        sys.exit(f"Cannot connect to {args.host}:{args.port}: {e}")
     sock.settimeout(0.5)
-    print(f"Pripojené na {args.host}:{args.port} – počúvam (nič nevysielam). Ctrl+C = koniec.\n")
+    print(f"Connected to {args.host}:{args.port} – listening (sending nothing). Ctrl+C = stop.\n")
 
     csv_w = None
     if args.csv:
@@ -144,17 +143,17 @@ def main():
         csv_w.writerow(["t_s", "dir", "id", "fc", "len", "desc", "hex"])
 
     buf = bytearray()
-    times = []                    # čas prijatia pre každý bajt v buf
+    times = []                    # arrival time of each byte in buf
     t0 = time.monotonic()
-    pending = None                # posledná otázka bez odpovede: (t, frame)
-    last_frame_end = None         # (t, frame) posledného rámca
+    pending = None                # last request without a response: (t, frame)
+    last_frame_end = None         # (t, frame, is_req) of the last frame
     junk = 0
     frames = {"req": 0, "rsp": 0}
     per_id = {}
-    req_periods = {}              # uid -> [perióda medzi otázkami]
+    req_periods = {}              # uid -> [period between requests]
     last_req_t = {}
-    latencies = []                # otázka -> odpoveď
-    gaps = []                     # odhad ticha na zbernici medzi koncom odpovede a ďalšou otázkou
+    latencies = []                # request -> response
+    gaps = []                     # estimated bus silence between a response and the next request
     unanswered = 0
 
     try:
@@ -164,7 +163,7 @@ def main():
             try:
                 chunk = sock.recv(1024)
                 if not chunk:
-                    print("Spojenie ukončené Waveshare-om.")
+                    print("Connection closed by the gateway.")
                     break
                 now = time.monotonic() - t0
                 buf += chunk
@@ -182,7 +181,7 @@ def main():
                     junk += 1
                     continue
                 frame = bytes(buf[:n])
-                t = times[n - 1]          # čas prijatia konca rámca
+                t = times[n - 1]          # arrival time of the frame end
                 del buf[:n]
                 del times[:n]
                 uid, fc = frame[0], frame[1]
@@ -206,7 +205,7 @@ def main():
                     if uid in last_req_t:
                         req_periods.setdefault(uid, []).append(t - last_req_t[uid])
                     last_req_t[uid] = t
-                    if last_frame_end and not last_frame_end[2]:   # predchádzala odpoveď
+                    if last_frame_end and not last_frame_end[2]:   # previous frame was a response
                         gap = (t - airtime(n)) - last_frame_end[0]
                         if gap >= 0:
                             gaps.append(gap)
@@ -237,33 +236,33 @@ def main():
 
     dur = time.monotonic() - t0
     print("\n" + "=" * 100)
-    print(f"ŠTATISTIKA  (meranie {dur:.1f} s)")
-    print(f"  otázky: {frames['req']}   odpovede: {frames['rsp']}   bez odpovede: {unanswered}   "
-          f"zahodené bajty (chyba CRC/šum): {junk}")
-    print(f"  otázky podľa Modbus ID: {per_id}")
+    print(f"STATISTICS  ({dur:.1f} s)")
+    print(f"  requests: {frames['req']}   responses: {frames['rsp']}   unanswered: {unanswered}   "
+          f"dropped bytes (CRC error/noise): {junk}")
+    print(f"  requests per Modbus ID: {per_id}")
     for uid, per in req_periods.items():
-        print(fmt_stats(f"perióda otázok pre ID {uid}", per))
-    print(fmt_stats("odozva jednotky (otázka -> odpoveď)", latencies))
-    print(fmt_stats("ticho na zbernici (odpoveď -> ďalšia otázka)", gaps))
+        print(fmt_stats(f"request period for ID {uid}", per))
+    print(fmt_stats("unit response time (request -> response)", latencies))
+    print(fmt_stats("bus silence (response -> next request)", gaps))
 
-    print("\nVYHODNOTENIE")
+    print("\nASSESSMENT")
     if frames["req"] == 0 and junk == 0:
-        print("  Žiadne dáta. Skontroluj: Waveshare v režime 'None', panel zapojený, A/B, baud 19200.")
+        print("  No data. Check: gateway protocol 'None', panel connected, A/B, 19200 baud.")
     elif frames["req"] == 0 and junk > 0:
-        print("  Prichádzajú dáta, ale žiadny platný rámec -> zlý baud/parita (skús 8N1) alebo prehodené A/B.")
+        print("  Data arrives but no valid frame -> A/B swapped or wrong baud/parity (C4: 19200 8E1).")
     else:
         if junk > frames["req"]:
-            print("  Veľa zahodených bajtov – možno rušenie, zlá parita alebo zlepené rámce (zníž packet interval).")
+            print("  Many dropped bytes – noise, wrong parity or merged frames (lower Max Interval).")
         if gaps:
             med = statistics.median(gaps) * 1000
             if med > 200:
-                print(f"  Medzi otázkami panelu je typicky ~{med:.0f} ms ticha -> druhý master s čakaním na voľnú "
-                      "zbernicu (napr. budulinek gateway, frame delay 20–50 ms) má dobrú šancu fungovať.")
+                print(f"  Typically ~{med:.0f} ms of silence between panel requests -> a second master that waits "
+                      "for an idle bus (gateway bus conflict detection, 20–50 ms) should work well.")
             elif med > 30:
-                print(f"  Ticho ~{med:.0f} ms – tesné. Proxy/čakanie na voľnú zbernicu možné, ale bude občas kolidovať.")
+                print(f"  Silence ~{med:.0f} ms – tight. Waiting for an idle bus is possible but will collide sometimes.")
             else:
-                print(f"  Ticho len ~{med:.0f} ms – zbernica je takmer stále obsadená, treba skutočný proxy (2 porty).")
-        print("  Pozn.: časy sú merané podľa príchodu TCP paketov, presnosť závisí od nastavenia Waveshare (±pár ms).")
+                print(f"  Only ~{med:.0f} ms of silence – the bus is almost always busy, a real proxy (2 ports) is needed.")
+        print("  Note: times come from TCP packet arrival; accuracy depends on the gateway settings (± a few ms).")
 
 
 if __name__ == "__main__":
