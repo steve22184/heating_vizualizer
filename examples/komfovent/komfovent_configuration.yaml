@@ -342,7 +342,7 @@ template:
               address: 1000
               value: "{{ 1 if option == 'Winter' else 0 }}"
           - action: homeassistant.update_entity
-            target:
+            data:
               entity_id: sensor.komfovent_season_raw
 
       - name: "Komfovent Ventilation Level"
@@ -359,7 +359,7 @@ template:
               address: 1099
               value: "{{ option[-1] | int }}"
           - action: homeassistant.update_entity
-            target:
+            data:
               entity_id: sensor.komfovent_ventilation_level_set
 
       - name: "Komfovent Control Mode"
@@ -374,7 +374,7 @@ template:
               address: 1101
               value: "{{ 1 if option == 'Auto' else 0 }}"
           - action: homeassistant.update_entity
-            target:
+            data:
               entity_id: sensor.komfovent_control_mode_raw
 
   - number:
@@ -393,7 +393,7 @@ template:
               address: 1200
               value: "{{ (value * 10) | int }}"
           - action: homeassistant.update_entity
-            target:
+            data:
               entity_id: sensor.komfovent_setpoint_temp
 
       - name: "Komfovent OVR Time Set"
@@ -411,7 +411,7 @@ template:
               address: 1111
               value: "{{ value | int }}"
           - action: homeassistant.update_entity
-            target:
+            data:
               entity_id: sensor.komfovent_ovr_time
 
   - binary_sensor:
@@ -517,7 +517,7 @@ script:
           value: "{{ yr }}"
       - delay: "00:00:02"
       - action: homeassistant.update_entity
-        target:
+        data:
           entity_id:
             - sensor.komfovent_clock_raw
             - sensor.komfovent_day_of_week_raw
