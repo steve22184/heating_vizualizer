@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["heating-visualizer-card.js", "node_modules/**"] },
+  { ignores: ["heating-visualizer-card.js", "komfovent-card.js", "node_modules/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

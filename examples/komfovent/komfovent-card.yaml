@@ -1,0 +1,24 @@
+# Komfovent Card – dashboard card for the Komfovent C4 ventilation unit
+# Resource: /local/komfovent-card.js (JavaScript module)
+# Entities come from komfovent_configuration.yaml in this folder.
+type: custom:komfovent-card
+name: Rekuperácia
+show_controls: true
+# Override only the entities that are named differently in your installation:
+# entities:
+#   power: switch.komfovent_power
+#   boost: switch.komfovent_ovr_boost
+#   boost_remaining: sensor.komfovent_ovr_time_remaining
+#   season: select.komfovent_season
+#   level: select.komfovent_ventilation_level
+#   level_current: sensor.komfovent_ventilation_level_current
+#   mode: select.komfovent_control_mode
+#   setpoint: number.komfovent_temp_setpoint
+#   supply_temp: sensor.komfovent_supply_air_temp
+#   recuperator: sensor.komfovent_recuperator_level
+#   heater: sensor.komfovent_electric_heater_level
+#   supply_fan: sensor.komfovent_supply_fan_current
+#   exhaust_fan: sensor.komfovent_exhaust_fan_current
+#   fans_running: binary_sensor.komfovent_fans_running
+#   alarm: sensor.komfovent_alarm_status
+#   clock: sensor.komfovent_clock
