@@ -22,8 +22,9 @@ still connected.
 3. Reload the browser (Ctrl+F5) and add the card from `komfovent-card.yaml`.
 
 The card draws the unit (outdoor air → filter → rotary heat exchanger → supply fan → heater → rooms,
-extract → filter → heat exchanger → exhaust fan → outside) with animated air flow, and offers controls
-for power, boost, ventilation level, setpoint, season and mode.
+extract → filter → heat exchanger → exhaust fan → outside) with animated air flow, and offers compact controls
+for power, boost, ventilation level, setpoint, season and mode, plus a weekly schedule editor (registers 1300–1362).
+On wide dashboards the schema and the controls sit side by side, so the card fits the screen without scrolling.
 
 ## Hardware notes (verified)
 

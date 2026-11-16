@@ -142,6 +142,31 @@ modbus:
         data_type: uint16
         scan_interval: 3600
 
+      # --- týždenný program (doc 1300..1362) -------------------------
+      # Jeden senzor = jedno čítanie bloku; stav je zoznam hodnôt oddelených čiarkou.
+      # Časy: hodina*256 + minúta (06:30 = 0x0630 = 1584, 24:00 = 0x1800).
+      # Poradie: Po1 začiatok, Po1 koniec, Po2 z., Po2 k., Po3 z., Po3 k., Ut1 z., ... Ne3 k.
+      - name: "Komfovent Schedule Times"
+        unique_id: komfovent_schedule_times
+        slave: 20
+        address: 1299           # doc 1300..1341 (42 registrov)
+        input_type: holding
+        data_type: custom
+        structure: ">42H"
+        count: 42
+        scan_interval: 300
+
+      # Stupeň vetrania pre každý úsek: Po1, Po2, Po3, Ut1, ... Ne3 (0 = vyp, 1..3)
+      - name: "Komfovent Schedule Levels"
+        unique_id: komfovent_schedule_levels
+        slave: 20
+        address: 1341           # doc 1342..1362 (21 registrov)
+        input_type: holding
+        data_type: custom
+        structure: ">21H"
+        count: 21
+        scan_interval: 300
+
       # --- režimy (čítanie pre template select) ---------------------
       - name: "Komfovent Season Raw"
         unique_id: komfovent_season_raw

@@ -4,6 +4,9 @@
 type: custom:komfovent-card
 name: Rekuperácia
 show_controls: true
+show_schedule: true          # weekly schedule (needs the two schedule sensors)
+modbus_hub: komfovent_c4     # hub used to write the schedule
+modbus_slave: 20             # Modbus ID of the unit
 # Override only the entities that are named differently in your installation:
 # entities:
 #   power: switch.komfovent_power
@@ -22,3 +25,5 @@ show_controls: true
 #   fans_running: binary_sensor.komfovent_fans_running
 #   alarm: sensor.komfovent_alarm_status
 #   clock: sensor.komfovent_clock
+#   schedule_times: sensor.komfovent_schedule_times
+#   schedule_levels: sensor.komfovent_schedule_levels
