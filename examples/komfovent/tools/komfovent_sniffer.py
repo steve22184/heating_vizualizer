@@ -14,9 +14,9 @@ WAVESHARE SETUP (web page / VirCom):
   - Keep the wall panel CONNECTED – that is the point.
 
 Usage (plain Python 3.8+, no libraries):
-  python komfovent_sniffer.py 192.168.100.200
-  python komfovent_sniffer.py 192.168.100.200 --time 300 --csv log.csv
-  python komfovent_sniffer.py 192.168.100.200 --quiet      # statistics only
+  python komfovent_sniffer.py 192.168.1.200
+  python komfovent_sniffer.py 192.168.1.200 --time 300 --csv log.csv
+  python komfovent_sniffer.py 192.168.1.200 --quiet      # statistics only
 Stop with Ctrl+C or after --time; statistics are printed at the end.
 """
 import argparse

@@ -6,10 +6,10 @@ Install:     pip install pymodbus
 Waveshare:   Transfer Protocol = Modbus_TCP Protocol (TCP -> RTU gateway), 19200 8E1
 
 1) Find the ID (tries several IDs, reads 1000, 1006 = Modbus address, 1200, 1201):
-     python komfovent_test.py 192.168.100.200
+     python komfovent_test.py 192.168.1.200
 
 2) Load test with the panel connected (error / collision rate):
-     python komfovent_test.py 192.168.100.200 --id 20 --loop 300
+     python komfovent_test.py 192.168.1.200 --id 20 --loop 300
    (300 reads, one every 0.5 s – prints success rate and response times)
 
 Addresses in this script follow the C4 manual (1-based); the wire address is
@@ -100,7 +100,7 @@ def loop(client, unit, n, interval):
 
 def main():
     ap = argparse.ArgumentParser(description="Modbus communication test for a Komfovent C4")
-    ap.add_argument("host", nargs="?", default="192.168.100.200")
+    ap.add_argument("host", nargs="?", default="192.168.1.200")
     ap.add_argument("--port", type=int, default=502)
     ap.add_argument("--id", type=int, help="Modbus ID for the load test")
     ap.add_argument("--loop", type=int, default=0, help="number of reads in the load test")

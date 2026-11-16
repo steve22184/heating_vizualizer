@@ -1,12 +1,12 @@
-# HOWTO: Komfovent C4 in Home Assistant over Modbus
+# HOWTO: Komfovent C4 with a Waveshare gateway
 
-Step-by-step from wiring a Waveshare RS485 gateway to the C4 controller up to the Komfovent Card on a dashboard. The wall panel stays connected and keeps working.
+Step-by-step from wiring a Waveshare RS485 TO POE ETH (B) gateway to the C4 controller up to the Komfovent Card on a dashboard. The wall panel stays connected and keeps working.
 
 ![Komfovent Card](preview.svg)
 
 - **Tested on** Komfovent RECU-300VEB-R-EC-C4, Waveshare RS485 TO POE ETH (B) firmware V1.523, Home Assistant 2026.11.
 - **Result** – reading and writing over Modbus TCP with the panel on the same bus, 99.7 % successful reads.
-- **Two gateway branches:** **A – Waveshare RS485 TO POE ETH (B)** (tested, this document) and **B – budulinek Arduino gateway** (open source, not tested on the Komfovent yet, [BUDULINEK_HOWTO.md](BUDULINEK_HOWTO.md)). Steps marked *A* / *B* differ; everything else is shared.
+- Unit facts (pinout, serial settings, Modbus ID, register map) and how this gateway compares to others are in the [README](README.md).
 - Helper scripts are in [`tools/`](tools); they need Python 3.8+ (`komfovent_test.py` also `pip install pymodbus`).
 
 ## Contents
@@ -25,11 +25,10 @@ Step-by-step from wiring a Waveshare RS485 gateway to the C4 controller up to th
 
 | Item | Note |
 | --- | --- |
-| **A:** Waveshare RS485 TO POE ETH (B) | Isolated RS485, power over PoE or 6–36 V DC. Other Modbus TCP ↔ RTU gateways work too, but the VirCom settings below are Waveshare specific. |
-| **B:** Arduino Nano + W5500 + auto-direction RS485 module + DC-DC 20 V → 5 V | budulinek gateway firmware – parts, wiring and firmware in [BUDULINEK_HOWTO.md](BUDULINEK_HOWTO.md). |
+| Waveshare RS485 TO POE ETH (B) | Isolated RS485, power over PoE or 6–36 V DC. Other Modbus TCP ↔ RTU gateways work too, but the VirCom settings below are Waveshare specific. |
 | Cable with an RJ45 plug | Tapped in parallel to the panel cable, e.g. with an RJ45 coupler/splitter. |
 | Multimeter | To check pins before connecting anything. |
-| **A:** Windows PC with [VirCom](https://files.waveshare.com/upload/4/42/VirCom_en.rar) | Gateway configuration (the web page at the gateway IP has fewer options). |
+| Windows PC with [VirCom](https://files.waveshare.com/upload/4/42/VirCom_en.rar) | Gateway configuration (the web page at the gateway IP has fewer options). |
 
 ## 2. Wiring
 
@@ -49,13 +48,9 @@ The C4 talks to its wall panel over RS485 on the RJ45 connector **J1**. The Komf
 - pins 4 and 5 only a few volts (≈1–4 V), A slightly higher than B and flickering while the panel talks,
 - 20 V on pin 4 or 5 means the count is wrong – do not connect the gateway.
 
-**B:** the budulinek gateway uses the same pins 4/5/6, but needs 5 V from a DC-DC converter on pin 3 – see [BUDULINEK_HOWTO.md – Wiring](BUDULINEK_HOWTO.md#3-wiring).
-
 Leave the gateway's earth terminal (⏚) unconnected. Komfovent requires a separate GND wire only above 10 m; the isolated RS485 side follows the bus on its own. Connect it to pin 6 only if the bus stays unreliable after everything else is right.
 
 ## 3. Listen to the bus first
-
-*A only* – the budulinek gateway has no transparent mode; with **B** skip to [BUDULINEK_HOWTO.md – Test](BUDULINEK_HOWTO.md#6-test), its boot scan and statistics show whether the wiring is right. (The Waveshare, if you have one, can still be used for this sniffing step before switching to B.)
 
 Before sending anything, prove the wiring by listening to the panel. The gateway only receives in this mode, so the panel is not disturbed.
 
@@ -63,6 +58,7 @@ Before sending anything, prove the wiring by listening to the panel. The gateway
 
 | Field | Value |
 | --- | --- |
+| IP Mode / IP Address | Static, a free address in your LAN (examples here: **192.168.1.200**) |
 | Work Mode | TCP Server, port 502 |
 | Baud Rate / Data Bits / Parity / Stop Bits | **19200 / 8 / Even / 1** (fixed on the C4) |
 | Flow Control | None |
@@ -72,7 +68,7 @@ Before sending anything, prove the wiring by listening to the panel. The gateway
 *Modify Setting*, wait for the restart, close VirCom and disable the Home Assistant Modbus hub (the gateway accepts few TCP clients). Then:
 
 ```bash
-python tools/komfovent_sniffer.py 192.168.100.200 --time 120 --csv log.csv
+python tools/komfovent_sniffer.py 192.168.1.200 --time 120 --csv log.csv
 ```
 
 | Sniffer shows | Meaning | Next step |
@@ -85,9 +81,6 @@ What we saw: the panel polls **ID 254** once per second (10 registers, ~19 ms of
 
 ## 4. Switch the gateway to Modbus TCP
 
-**B:** flash and configure the budulinek gateway instead – [BUDULINEK_HOWTO.md – Firmware](BUDULINEK_HOWTO.md#4-firmware) and [Gateway settings](BUDULINEK_HOWTO.md#5-gateway-settings) (19200 8E1, Inter-frame Delay 50 ms, same IP 192.168.100.200). Then continue with step 5.
-
-**A – Waveshare:**
 
 **VirCom** → *Edit Device*:
 
@@ -106,7 +99,7 @@ Keep the panel connected, close VirCom.
 
 ```bash
 pip install pymodbus
-python tools/komfovent_test.py 192.168.100.200
+python tools/komfovent_test.py 192.168.1.200
 ```
 
 The script tries IDs 1, 20, 254, … and reads registers 1000, **1006** (the unit's Modbus address), 1200 and 1201. Our unit answered on **20** (register 1006 = 20) and on 254 (the panel's address).
@@ -115,7 +108,7 @@ The script tries IDs 1, 20, 254, … and reads registers 1000, **1006** (the uni
 - Load test with the panel connected:
 
   ```bash
-  python tools/komfovent_test.py 192.168.100.200 --id 20 --loop 300
+  python tools/komfovent_test.py 192.168.1.200 --id 20 --loop 300
   ```
 
   Expect a few tenths of a percent of errors at most; Home Assistant repeats a failed read.
@@ -135,7 +128,7 @@ Things the file takes care of:
 - Alarm notification from the stop code (register 1009).
 - **Weekly schedule** – `sensor.komfovent_schedule_times` (registers 1300–1341) and `sensor.komfovent_schedule_levels` (1342–1362) read each block in one request (`data_type: custom`, `structure: ">42H"` / `">21H"`, **`precision: 0`** – with decimals the 42 values exceed the 255 character state limit and the sensor stays unknown); the state is a comma separated list the card decodes.
 
-**A:** hide the gateway's forwarded panel traffic in the log (pymodbus logs every skipped frame as `request ask for id=20 but got id=254`). **B** does not forward the panel's frames, so this is not needed:
+Hide the gateway's forwarded panel traffic in the log (pymodbus logs every skipped frame as `request ask for id=20 but got id=254`):
 
 ```yaml
 logger:
@@ -149,7 +142,7 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 ## 7. Komfovent Card
 
 1. Copy [`komfovent-card.js`](../../komfovent-card.js) to `<config>/www/`.
-2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card.js` as **JavaScript module**.
+2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card.js?v=1.1.1` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
 3. Reload the browser with **Ctrl+F5**.
 4. Add the card from [`komfovent-card.yaml`](komfovent-card.yaml):
 
@@ -177,28 +170,9 @@ The card builds its DOM once and only updates values afterwards, so buttons reac
 | Log full of `got id=254, Skipping` | Gateway forwards panel traffic | `pymodbus.logging: error` (harmless) |
 | Conflict detection unticks itself | Gateway type *Simple Modbus TCP to RTU* | Use *Multi-host non-storage type* |
 | Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5, or a version in the resource URL (`/local/komfovent-card.js?v=1.1.1`) |
-| Problems with the budulinek gateway | – | See [BUDULINEK_HOWTO.md – Troubleshooting](BUDULINEK_HOWTO.md#7-troubleshooting) |
 | Card shows *Schedule sensors missing* | Schedule sensors not configured | Add *Komfovent Schedule Times / Levels* from the example configuration |
 | Buttons need a long press (card 1.0.0) | The card re-rendered on every state update | Update to `komfovent-card.js` 1.1.0+ and reload with Ctrl+F5 |
 
 ## 9. Reference
 
-| Register (manual) | Meaning | Access |
-| --- | --- | --- |
-| 1000 | Start/Stop (1/0) | R/W |
-| 1001 | Season (1 winter, 0 summer) | R/W |
-| 1002 | Time, hour·256 + minute (8:05 = 0x0805) | R/W |
-| 1003 / 1004 / 1005 | Weekday 1–7 / month·256 + day / year | R/W |
-| 1006 | Modbus address 1–100 | R/W |
-| 1007 / 1008 / 1009 | Warnings / stop flags / stop code | R |
-| 1010–1013 | Heat recovery, electric heater, water heating, water cooling % | R |
-| 1100 / 1101 / 1102 | Ventilation level set 1–3 / current 0–4 / mode (0 manual, 1 auto) | R/W / R / R/W |
-| 1103–1110 | Intake / exhaust fan intensity for levels 1–4 | R/W |
-| 1111 / 1112 / 1113 | OVR (boost) enable / time 1–90 min / remaining | R/W / R/W / R |
-| 1114 / 1115 / 1116 | Fans running / supply fan % / exhaust fan % | R |
-| 1200 / 1201 / 1202 | Supply temp / setpoint / correction, ×10 °C | R / R/W / R/W |
-| 1205 | Water temp ×10 °C | R |
-| 1300–1362 | Weekly schedule | R/W |
-| 10900–10909 | Undocumented block read by the panel (setpoint, supply temp, time, …) | R |
-
-Sources: Komfovent *Modbus registers of C4 controller*, [AlgMi/komfovent_c4](https://github.com/AlgMi/komfovent_c4) (direct RS485 connection, panel address 254; `tools/C4_registers.json` is its MIT-licensed register dump, © Lenno Nagel), [maxlarin63/KVent-HA](https://github.com/maxlarin63/KVent-HA) (1-based addressing, register 1000 glitch).
+Register map, verified unit facts and sources: see the [README](README.md#register-reference).
