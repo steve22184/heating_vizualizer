@@ -6,6 +6,7 @@ Step-by-step from wiring a Waveshare RS485 gateway to the C4 controller up to th
 
 - **Tested on** Komfovent RECU-300VEB-R-EC-C4, Waveshare RS485 TO POE ETH (B) firmware V1.523, Home Assistant 2026.11.
 - **Result** – reading and writing over Modbus TCP with the panel on the same bus, 99.7 % successful reads.
+- **Two gateway branches:** **A – Waveshare RS485 TO POE ETH (B)** (tested, this document) and **B – budulinek Arduino gateway** (open source, not tested on the Komfovent yet, [BUDULINEK_HOWTO.md](BUDULINEK_HOWTO.md)). Steps marked *A* / *B* differ; everything else is shared.
 - Helper scripts are in [`tools/`](tools); they need Python 3.8+ (`komfovent_test.py` also `pip install pymodbus`).
 
 ## Contents
@@ -24,10 +25,11 @@ Step-by-step from wiring a Waveshare RS485 gateway to the C4 controller up to th
 
 | Item | Note |
 | --- | --- |
-| Waveshare RS485 TO POE ETH (B) | Isolated RS485, power over PoE or 6–36 V DC. Other Modbus TCP ↔ RTU gateways work too, but the VirCom settings below are Waveshare specific. |
+| **A:** Waveshare RS485 TO POE ETH (B) | Isolated RS485, power over PoE or 6–36 V DC. Other Modbus TCP ↔ RTU gateways work too, but the VirCom settings below are Waveshare specific. |
+| **B:** Arduino Nano + W5500 + auto-direction RS485 module + DC-DC 20 V → 5 V | budulinek gateway firmware – parts, wiring and firmware in [BUDULINEK_HOWTO.md](BUDULINEK_HOWTO.md). |
 | Cable with an RJ45 plug | Tapped in parallel to the panel cable, e.g. with an RJ45 coupler/splitter. |
 | Multimeter | To check pins before connecting anything. |
-| Windows PC with [VirCom](https://files.waveshare.com/upload/4/42/VirCom_en.rar) | Gateway configuration (the web page at the gateway IP has fewer options). |
+| **A:** Windows PC with [VirCom](https://files.waveshare.com/upload/4/42/VirCom_en.rar) | Gateway configuration (the web page at the gateway IP has fewer options). |
 
 ## 2. Wiring
 
@@ -47,9 +49,13 @@ The C4 talks to its wall panel over RS485 on the RJ45 connector **J1**. The Komf
 - pins 4 and 5 only a few volts (≈1–4 V), A slightly higher than B and flickering while the panel talks,
 - 20 V on pin 4 or 5 means the count is wrong – do not connect the gateway.
 
+**B:** the budulinek gateway uses the same pins 4/5/6, but needs 5 V from a DC-DC converter on pin 3 – see [BUDULINEK_HOWTO.md – Wiring](BUDULINEK_HOWTO.md#3-wiring).
+
 Leave the gateway's earth terminal (⏚) unconnected. Komfovent requires a separate GND wire only above 10 m; the isolated RS485 side follows the bus on its own. Connect it to pin 6 only if the bus stays unreliable after everything else is right.
 
 ## 3. Listen to the bus first
+
+*A only* – the budulinek gateway has no transparent mode; with **B** skip to [BUDULINEK_HOWTO.md – Test](BUDULINEK_HOWTO.md#6-test), its boot scan and statistics show whether the wiring is right. (The Waveshare, if you have one, can still be used for this sniffing step before switching to B.)
 
 Before sending anything, prove the wiring by listening to the panel. The gateway only receives in this mode, so the panel is not disturbed.
 
@@ -78,6 +84,10 @@ python tools/komfovent_sniffer.py 192.168.100.200 --time 120 --csv log.csv
 What we saw: the panel polls **ID 254** once per second (10 registers, ~19 ms of bus time, the unit answers within ~30 ms), so the bus is idle about 96 % of the time – enough room for Home Assistant.
 
 ## 4. Switch the gateway to Modbus TCP
+
+**B:** flash and configure the budulinek gateway instead – [BUDULINEK_HOWTO.md – Firmware](BUDULINEK_HOWTO.md#4-firmware) and [Gateway settings](BUDULINEK_HOWTO.md#5-gateway-settings) (19200 8E1, Inter-frame Delay 50 ms, same IP 192.168.100.200). Then continue with step 5.
+
+**A – Waveshare:**
 
 **VirCom** → *Edit Device*:
 
@@ -125,7 +135,7 @@ Things the file takes care of:
 - Alarm notification from the stop code (register 1009).
 - **Weekly schedule** – `sensor.komfovent_schedule_times` (registers 1300–1341) and `sensor.komfovent_schedule_levels` (1342–1362) read each block in one request (`data_type: custom`, `structure: ">42H"` / `">21H"`, **`precision: 0`** – with decimals the 42 values exceed the 255 character state limit and the sensor stays unknown); the state is a comma separated list the card decodes.
 
-Hide the gateway's forwarded panel traffic in the log (pymodbus logs every skipped frame as `request ask for id=20 but got id=254`):
+**A:** hide the gateway's forwarded panel traffic in the log (pymodbus logs every skipped frame as `request ask for id=20 but got id=254`). **B** does not forward the panel's frames, so this is not needed:
 
 ```yaml
 logger:
@@ -134,7 +144,7 @@ logger:
     pymodbus.logging: error
 ```
 
-Check the configuration (Developer tools → YAML → *Check configuration*), restart and verify that the entities have values, then change `number.komfovent_temp_setpoint` and watch the panel follow. Run the script *Komfovent: Sync clock* once by hand.
+Check the configuration (Developer tools → YAML → *Check configuration*), restart and verify that the entities have values, then change `number.komfovent_temp_setpoint` and watch the panel follow. Run the script *Komfovent: Synchronizovať hodiny* (`script.komfovent_sync_clock`) once by hand.
 
 ## 7. Komfovent Card
 
@@ -166,7 +176,8 @@ The card builds its DOM once and only updates values afterwards, so buttons reac
 | Values are from the neighbouring register | 1-based manual addresses used directly | Subtract 1 |
 | Log full of `got id=254, Skipping` | Gateway forwards panel traffic | `pymodbus.logging: error` (harmless) |
 | Conflict detection unticks itself | Gateway type *Simple Modbus TCP to RTU* | Use *Multi-host non-storage type* |
-| Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5 |
+| Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5, or a version in the resource URL (`/local/komfovent-card.js?v=1.1.1`) |
+| Problems with the budulinek gateway | – | See [BUDULINEK_HOWTO.md – Troubleshooting](BUDULINEK_HOWTO.md#7-troubleshooting) |
 | Card shows *Schedule sensors missing* | Schedule sensors not configured | Add *Komfovent Schedule Times / Levels* from the example configuration |
 | Buttons need a long press (card 1.0.0) | The card re-rendered on every state update | Update to `komfovent-card.js` 1.1.0+ and reload with Ctrl+F5 |
 

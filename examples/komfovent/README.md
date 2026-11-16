@@ -10,9 +10,10 @@ still connected.
 
 | File | What it is |
 | --- | --- |
-| `komfovent_configuration.yaml` | `modbus`, `template`, `script` and `automation` blocks for `configuration.yaml`: sensors, switches, writable selects/numbers (template entities calling `modbus.write_register`), alarm notification and daily clock sync. |
+| `komfovent_configuration.yaml` | Comments in Slovak. `modbus`, `template`, `script` and `automation` blocks for `configuration.yaml`: sensors, switches, writable selects/numbers (template entities calling `modbus.write_register`), alarm notification and daily clock sync. |
 | `komfovent-card.yaml` | Dashboard card using [`komfovent-card.js`](../../komfovent-card.js). |
 | [`HOWTO.md`](HOWTO.md) | The whole process step by step: wiring, sniffing the bus, gateway settings, finding the Modbus ID, Home Assistant and the card. |
+| [`BUDULINEK_HOWTO.md`](BUDULINEK_HOWTO.md) | Branch B: the open-source budulinek Arduino gateway instead of the Waveshare (parts, wiring, firmware, settings, test log). Not tested on the Komfovent yet. |
 | `tools/` | `komfovent_sniffer.py` (passive bus sniffer), `komfovent_test.py` (ID scan and load test), `fake_c4.py` + `C4_registers.json` (C4 simulator over TCP or RTU). |
 
 ## Card installation

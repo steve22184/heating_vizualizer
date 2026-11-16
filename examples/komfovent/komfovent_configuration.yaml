@@ -1,30 +1,30 @@
 # ============================================================
-# Komfovent RECU-300VEB-R-EC-C4 — Home Assistant Modbus
+# Komfovent RECU-300VEB-R-EC-C4 — Home Assistant Modbus (opravené)
 # ============================================================
-# NOTES
-#  1) The HA modbus integration has NO "selects:" or "numbers:" platform –
-#     with them the whole hub fails to load. Template select/number entities
-#     write through modbus.write_register instead.
-#  2) Addresses: the C4 manual numbers registers from 1, HA sends 0-based
-#     addresses -> every address is one lower (1000 -> 999, 1200 -> 1199 ...).
-#  3) SLAVE ID = 20 (verified: register 1006 = 20). DO NOT use 254 – the panel
-#     polls 254 and its answers could be taken for answers to HA.
+# ZMENY OPROTI PÔVODNEJ VERZII
+#  1) HA modbus NEPODPORUJE "selects:" ani "numbers:" -> celý modbus hub
+#     sa kvôli tomu nenačítal. Nahradené template select/number,
+#     ktoré zapisujú cez modbus.write_register.
+#  2) Adresy: manuál C4 číslue registre od 1, HA posiela adresu od 0
+#     -> všetky adresy sú o 1 menšie (1000 -> 999, 1200 -> 1199 ...).
+#  3) SLAVE_ID = 20 (overené: register 1006 = 20). NEPOUŽÍVAJ 254 –
+#     na 254 sa pýta panel a jeho odpovede by sa mohli zameniť s odpoveďami pre HA.
 #
-# HARDWARE (verified by sniffing the bus, 2026-11-16)
-#   J1 RJ45 (pin numbering as in the Komfovent drawing):
-#     Pin 3 +20 VDC -> Waveshare power +
+# HARDVÉR (overené odpočúvaním 16.11.2026)
+#   J1 RJ45 (číslovanie podľa výkresu Komfovent):
+#     Pin 3 +20 VDC -> Waveshare napájanie +
 #     Pin 4 A       -> Waveshare TDA
 #     Pin 5 B       -> Waveshare TDB
-#     Pin 6 GND     -> Waveshare GND (power)
+#     Pin 6 GND     -> Waveshare GND (napájanie)
 #   Waveshare: Modbus_TCP Protocol, 19200 8E1, Max Interval 3 ms,
 #     Gateway type: Multi-host non-storage, bus conflict detection 50 ms
-#   The wall panel stays connected (it polls ID 254 once per second).
+#   Panel ostáva zapojený (pýta sa ID 254 raz za sekundu).
 # ============================================================
 
 modbus:
   - name: komfovent_c4
-    type: tcp                  # Waveshare in "Modbus TCP to RTU" mode
-    # type: rtuovertcp         # use when the Waveshare protocol is "None" (transparent)
+    type: tcp                  # Waveshare v režime "Modbus TCP to RTU"
+    # type: rtuovertcp         # použi ak je Waveshare v režime "None" (transparent)
     host: 192.168.100.200
     port: 502
     timeout: 5
@@ -59,7 +59,7 @@ modbus:
           state_off: 0
 
     sensors:
-      # --- temperatures -----------------------------------------------
+      # --- teploty --------------------------------------------------
       - name: "Komfovent Supply Air Temp"
         unique_id: komfovent_supply_temp
         slave: 20
@@ -109,11 +109,11 @@ modbus:
         state_class: measurement
         scan_interval: 60
 
-      # --- unit clock (doc 1002..1005) ---------------------------------
+      # --- hodiny jednotky (doc 1002..1005) ----------------------------
       - name: "Komfovent Clock Raw"
         unique_id: komfovent_clock_raw
         slave: 20
-        address: 1001           # doc 1002  hour*256 + minute (8:05 = 0x0805)
+        address: 1001           # doc 1002  hodina*256 + minúta (8:05 = 0x0805)
         input_type: holding
         data_type: uint16
         scan_interval: 60
@@ -121,7 +121,7 @@ modbus:
       - name: "Komfovent Day Of Week Raw"
         unique_id: komfovent_dow_raw
         slave: 20
-        address: 1002           # doc 1003  1=Mon .. 7=Sun
+        address: 1002           # doc 1003  1=Po .. 7=Ne
         input_type: holding
         data_type: uint16
         scan_interval: 600
@@ -129,7 +129,7 @@ modbus:
       - name: "Komfovent Month Day Raw"
         unique_id: komfovent_month_day_raw
         slave: 20
-        address: 1003           # doc 1004  month*256 + day (9 May = 0x0509)
+        address: 1003           # doc 1004  mesiac*256 + deň (9. máj = 0x0509)
         input_type: holding
         data_type: uint16
         scan_interval: 600
@@ -137,39 +137,39 @@ modbus:
       - name: "Komfovent Year Raw"
         unique_id: komfovent_year_raw
         slave: 20
-        address: 1004           # doc 1005  e.g. 2026
+        address: 1004           # doc 1005  napr. 2026
         input_type: holding
         data_type: uint16
         scan_interval: 3600
 
-      # --- weekly schedule (doc 1300..1362) --------------------------
-      # One sensor = one block read; the state is a comma separated list of values.
-      # Times: hour*256 + minute (06:30 = 0x061E = 1566, 24:00 = 0x1800).
-      # Order: Mon1 start, Mon1 stop, Mon2 start, Mon2 stop, Mon3 start, Mon3 stop, Tue1 start, ... Sun3 stop.
+      # --- týždenný program (doc 1300..1362) -------------------------
+      # Jeden senzor = jedno čítanie bloku; stav je zoznam hodnôt oddelených čiarkou.
+      # Časy: hodina*256 + minúta (06:30 = 0x061E = 1566, 24:00 = 0x1800).
+      # Poradie: Po1 začiatok, Po1 koniec, Po2 z., Po2 k., Po3 z., Po3 k., Ut1 z., ... Ne3 k.
       - name: "Komfovent Schedule Times"
         unique_id: komfovent_schedule_times
         slave: 20
-        address: 1299           # doc 1300..1341 (42 registers)
+        address: 1299           # doc 1300..1341 (42 registrov)
         input_type: holding
         data_type: custom
         structure: ">42H"
         count: 42
-        precision: 0            # no decimals, otherwise the state exceeds 255 characters
+        precision: 0            # bez desatinných miest, inak je stav > 255 znakov
         scan_interval: 300
 
-      # Ventilation level of each period: Mon1, Mon2, Mon3, Tue1, ... Sun3 (0 = off, 1..3)
+      # Stupeň vetrania pre každý úsek: Po1, Po2, Po3, Ut1, ... Ne3 (0 = vyp, 1..3)
       - name: "Komfovent Schedule Levels"
         unique_id: komfovent_schedule_levels
         slave: 20
-        address: 1341           # doc 1342..1362 (21 registers)
+        address: 1341           # doc 1342..1362 (21 registrov)
         input_type: holding
         data_type: custom
         structure: ">21H"
         count: 21
-        precision: 0            # no decimals, otherwise the state exceeds 255 characters
+        precision: 0            # bez desatinných miest, inak je stav > 255 znakov
         scan_interval: 300
 
-      # --- modes (read back for the template selects) ------------------
+      # --- režimy (čítanie pre template select) ---------------------
       - name: "Komfovent Season Raw"
         unique_id: komfovent_season_raw
         slave: 20
@@ -202,7 +202,7 @@ modbus:
         data_type: uint16
         scan_interval: 30
 
-      # --- outputs -------------------------------------------------
+      # --- výkony ---------------------------------------------------
       - name: "Komfovent Recuperator Level"
         unique_id: komfovent_recuperator_level
         slave: 20
@@ -289,8 +289,8 @@ modbus:
         unit_of_measurement: "min"
         scan_interval: 30
 
-      # --- fan intensities (doc 1103..1110) -> 1102..1109 -----------
-      # Read as one block and split with slave_count
+      # --- intenzity ventilátorov (doc 1103..1110) -> 1102..1109 ----
+      # Načítané naraz ako jeden blok + rozdelené cez slave_count
       - name: "Komfovent Intake Fan Level 1"
         unique_id: komfovent_intake_l1
         slave: 20
@@ -299,10 +299,10 @@ modbus:
         data_type: uint16
         unit_of_measurement: "%"
         scan_interval: 300
-        slave_count: 7          # creates 7 more sensors: 1103..1109
+        slave_count: 7          # vytvorí ďalších 7 senzorov: 1103..1109
         # (_1.._3 = Intake L2..L4, _4.._7 = Exhaust L1..L4)
 
-      # --- alarms --------------------------------------------------
+      # --- alarmy ---------------------------------------------------
       - name: "Komfovent Alarm Warnings"
         unique_id: komfovent_alarm_warnings
         slave: 20
@@ -328,7 +328,7 @@ modbus:
         scan_interval: 60
 
 # ----------------------------------------------------------
-# Writable entities (instead of modbus selects/numbers)
+# Zapisovateľné entity (náhrada za modbus selects/numbers)
 # ----------------------------------------------------------
 template:
   - select:
@@ -420,14 +420,14 @@ template:
       - name: "Komfovent Fans Running"
         unique_id: komfovent_fans_running
         device_class: running
-        # reg 1114: 1 = fans running (more reliable than 1000, which sometimes reports 0)
+        # reg 1114: 1 = ventilátory bežia (spoľahlivejšie ako 1000, ktorý občas hlási 0)
         state: "{{ is_state('sensor.komfovent_ahu_fans_status', '1') }}"
         availability: "{{ has_value('sensor.komfovent_ahu_fans_status') }}"
 
       - name: "Komfovent Power Mismatch"
         unique_id: komfovent_power_mismatch
         device_class: problem
-        # on when 1000 reports Stop while 1114 says the fans run (or the other way round)
+        # zapne sa, keď 1000 hlási Stop, ale ventilátory podľa 1114 bežia (alebo naopak)
         state: >
           {{ has_value('switch.komfovent_power') and has_value('sensor.komfovent_ahu_fans_status')
              and (is_state('switch.komfovent_power', 'on') != is_state('sensor.komfovent_ahu_fans_status', '1')) }}
@@ -448,7 +448,7 @@ template:
           {% set md = states('sensor.komfovent_month_day_raw') | int(-1) %}
           {% set y = states('sensor.komfovent_year_raw') | int(-1) %}
           {% set d = states('sensor.komfovent_day_of_week_raw') | int(0) %}
-          {% set dni = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+          {% set dni = ['', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'] %}
           {% if md >= 0 and y > 0 %}
             {{ dni[d] if 0 < d < 8 else '?' }} {{ md % 256 }}.{{ md // 256 }}.{{ y }}
           {% else %}unknown{% endif %}
@@ -477,12 +477,12 @@ template:
           {{ names.get(code, 'Alarm ' ~ code) }}
 
 # ----------------------------------------------------------
-# Sync the unit clock with Home Assistant time
-# (registers doc 1002..1005 -> wire 1001..1004, written with FC06)
+# Synchronizácia hodín jednotky s časom HA
+# (registre doc 1002..1005 -> wire 1001..1004, zápis FC06)
 # ----------------------------------------------------------
 script:
   komfovent_sync_clock:
-    alias: "Komfovent: Sync clock"
+    alias: "Komfovent: Synchronizovať hodiny"
     icon: mdi:clock-check-outline
     mode: single
     sequence:
@@ -497,25 +497,25 @@ script:
         data:
           hub: komfovent_c4
           slave: 20
-          address: 1001         # doc 1002 time
+          address: 1001         # doc 1002 čas
           value: "{{ hh * 256 + mm }}"
       - action: modbus.write_register
         data:
           hub: komfovent_c4
           slave: 20
-          address: 1002         # doc 1003 weekday
+          address: 1002         # doc 1003 deň v týždni
           value: "{{ dow }}"
       - action: modbus.write_register
         data:
           hub: komfovent_c4
           slave: 20
-          address: 1003         # doc 1004 month/day
+          address: 1003         # doc 1004 mesiac/deň
           value: "{{ mon * 256 + day }}"
       - action: modbus.write_register
         data:
           hub: komfovent_c4
           slave: 20
-          address: 1004         # doc 1005 year
+          address: 1004         # doc 1005 rok
           value: "{{ yr }}"
       - delay: "00:00:02"
       - action: homeassistant.update_entity
@@ -551,9 +551,9 @@ automation:
         data:
           notification_id: komfovent_alarm
 
-  - alias: "Komfovent: Daily clock sync"
+  - alias: "Komfovent: Synchronizácia hodín denne"
     id: komfovent_clock_sync_daily
-    description: "Writes date and time from HA to the unit every day at 03:17 and whenever the clock drifts by more than 2 min."
+    description: "Každý deň o 03:17 zapíše čas a dátum z HA do jednotky; aj pri odchýlke > 2 min."
     triggers:
       - trigger: time
         at: "03:17:00"
