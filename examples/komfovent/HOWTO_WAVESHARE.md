@@ -122,6 +122,7 @@ Add the blocks from [`komfovent_configuration.yaml`](komfovent_configuration.yam
 Things the file takes care of:
 
 - **Addresses are one lower** than in the C4 manual: manual 1000 → `address: 999`.
+- **Few requests** – the wall panel shows dashes instead of values once a second master asks about once per second (one request every 2 s is fine). The configuration therefore reads the unit in three blocks (`sensor.komfovent_block_1000`, `_1100`, `_1200`: registers 1000–1013, 1100–1116, 1200–1205) and template sensors with the old names split the values – about 0.15 requests per second in total. Migrating from single sensors: see the header of the YAML (load it once without the `template:` part, delete the old entities shown as *Not provided*, then enable the `template:` part).
 - The Modbus integration has **no `select` or `number` platform**; season, ventilation level, mode, setpoint and boost time are template `select`/`number` entities that call `modbus.write_register`.
 - `binary_sensor.komfovent_fans_running` comes from register 1114. Register 1000 sometimes reports *Stop* while the fans run; `binary_sensor.komfovent_power_mismatch` turns on when the two disagree for 2 minutes.
 - **Clock sync** – `script.komfovent_sync_clock` writes time, weekday, month/day and year (registers 1002–1005) from Home Assistant; an automation runs it every day at 03:17 and whenever `sensor.komfovent_clock_drift` exceeds ±2 min for 10 minutes (covers DST changes).

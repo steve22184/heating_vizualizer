@@ -48,7 +48,8 @@ def scan(client):
                 print(f"  {reg} {name}: timeout – ID {unit} does not answer, skipping")
                 break
             if rr.isError():
-                # exception response = the unit hears us (communication OK), only address/ID wrong
+                # exception response: code 11 = the gateway got no answer from this ID (budulinek);
+                # any other code = the unit hears us, only the address is wrong
                 print(f"  {reg} {name}: {rr}")
             else:
                 ok = True

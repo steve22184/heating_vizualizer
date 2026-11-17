@@ -4,7 +4,7 @@ Step-by-step from building an open-source Modbus TCP ↔ RTU gateway ([budulinek
 
 ![Komfovent Card](preview.svg)
 
-> **Status: not tested on the Komfovent yet.** The steps follow from the gateway's source code and from measurements on the unit's bus: the panel polls ID 254 once per second, the bus is idle about 96 % of the time and the unit answers within ~30 ms. Fill in the [test log](#10-test-log) when trying it.
+> **Status: tested** on 2026-11-17 with an Arduino Mega 2560, a W5100 Ethernet shield and an XY-485 module: unit found as 0x14 by the boot scan, 99.7 % successful reads in the load test with the panel connected. See the [test log](#10-test-log).
 
 - Unit facts (pinout, serial settings, Modbus ID, register map) and how this gateway compares to others are in the [README](README.md).
 - Helper scripts are in [`tools/`](tools); they need Python 3.8+ (`komfovent_test.py` also `pip install pymodbus`).
@@ -28,6 +28,7 @@ Step-by-step from building an open-source Modbus TCP ↔ RTU gateway ([budulinek
 | Part | Note |
 | --- | --- |
 | Arduino Nano (ATmega328) + W5500 module, or one ATmega328 + W5500 board (e.g. Keyestudio) | Nano, Uno and Mega are supported; ENC28J60 Ethernet does **not** work, ESP32 is not supported by this firmware. |
+| Arduino Mega 2560 + Ethernet shield W5100 (tested) | Set `#define mySerial Serial1` and wire the RS485 module to **pin 18 (TX1) / pin 19 (RX1)**; DHCP and the extended web UI are enabled automatically on the Mega. |
 | TTL → RS485 module with **automatic direction control** (MAX13487, "XY-017", "XY-485") | Avoid bare MAX485 modules with DE/RE pins. Some modules swap TXD/RXD. |
 | DC-DC step-down 20 V → 5 V (MP1584, LM2596, …) | The gateway needs a regulated 5 V supply, max 5.5 V. Do not feed 20 V to the Nano's VIN. |
 | Cable with an RJ45 plug | Tapped in parallel to the panel cable, e.g. with an RJ45 coupler/splitter. |
@@ -80,7 +81,7 @@ On a Nano the RS485 serial port is the USB port: **disconnect the RS485 module a
    ```
 
    With an auto-direction module leave `RS485_CONTROL_PIN` as it is (pin 6 stays unused).
-4. If the sketch does not fit into the Nano's flash, comment out `#define ENABLE_EXTENDED_WEBUI` and `#define ENABLE_DHCP`.
+4. Leave `#define ENABLE_EXTENDED_WEBUI` and `#define ENABLE_DHCP` commented out (they do not fit into a Nano; on a Mega they are enabled automatically). On a Mega set `#define mySerial Serial1`.
 5. Board *Arduino Nano* (try *ATmega328P (Old Bootloader)* if the upload fails) and upload.
 
 Settings are stored in EEPROM; *Tools → Load Default Settings* in the web UI restores the values from `advanced_settings.h`.
@@ -133,6 +134,7 @@ Add the blocks from [`komfovent_configuration.yaml`](komfovent_configuration.yam
 Things the file takes care of:
 
 - **Addresses are one lower** than in the C4 manual: manual 1000 → `address: 999`.
+- **Few requests** – the wall panel shows dashes instead of values once a second master asks about once per second (one request every 2 s is fine). The configuration therefore reads the unit in three blocks (`sensor.komfovent_block_1000`, `_1100`, `_1200`: registers 1000–1013, 1100–1116, 1200–1205) and template sensors with the old names split the values – about 0.15 requests per second in total. Migrating from single sensors: see the header of the YAML (load it once without the `template:` part, delete the old entities shown as *Not provided*, then enable the `template:` part).
 - The Modbus integration has **no `select` or `number` platform**; season, ventilation level, mode, setpoint and boost time are template `select`/`number` entities that call `modbus.write_register`.
 - `binary_sensor.komfovent_fans_running` comes from register 1114. Register 1000 sometimes reports *Stop* while the fans run; `binary_sensor.komfovent_power_mismatch` turns on when the two disagree for 2 minutes.
 - **Clock sync** – `script.komfovent_sync_clock` writes time, weekday, month/day and year (registers 1002–1005) from Home Assistant; an automation runs it every day at 03:17 and whenever `sensor.komfovent_clock_drift` exceeds ±2 min for 10 minutes (covers DST changes).
@@ -165,11 +167,12 @@ The schema shows outdoor air → filter → rotary heat exchanger → supply fan
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Web UI not reachable | Wrong IP, W5500 not initialised after power-up | Try 192.168.1.254; wire RST → D7 (see the gateway's *Ethernet Power On Reset Issue*) |
+| Web UI unreachable after moving / re-powering | Weak power supply – the W5x00 does not start or drops off | Proper 5 V ≥ 1 A supply (or DC-DC from J1 pin 3), then the RST→pin 7 fix |
 | Upload fails | RS485 module on D0/D1, wrong bootloader | Disconnect RS485 and J1 during upload; try *Old Bootloader* |
-| RTU Data TX grows, RX stays 0 | TXD/RXD or A/B swapped | Swap TXD/RXD on the module, then A/B |
+| RTU Data TX grows, RX stays 0 (module RXD LED blinks) | TXD/RXD swapped, or `mySerial` does not match the pins | Swap the wires on TX1/RX1 (XY-485: module TXD → pin 18, RXD → pin 19 worked); check `#define mySerial Serial1` |
 | Only *Invalid RTU Response*, nothing responds | Wrong pins, parity or baud | Check the J1 count; 19200 8E1 (fixed on the C4) |
 | *Response Timeout* although the wiring is right | Module switches direction too slowly | Faster module (MAX13487) or DE/RE on pin 6 |
-| Panel shows communication errors | Collisions | Increase the Inter-frame Delay (e.g. 80 ms), lengthen the Home Assistant scan intervals |
+| Panel shows dashes instead of values | Too many requests (≈1 per second or more) | Use the block-reading configuration (~0.15 requests/s); one request every 2 s was fine in the test |
 | Home Assistant connection drops | All sockets in use (4 on a Nano) | Close other Modbus clients (test scripts) |
 | Whole Modbus hub missing in Home Assistant | `selects:` / `numbers:` under `modbus:` | Use the template entities from the example |
 | Values are from the neighbouring register | 1-based manual addresses used directly | Subtract 1 |
@@ -184,4 +187,5 @@ Register map, verified unit facts and sources: see the [README](README.md#regist
 
 | Date | Hardware | Firmware / settings | Boot scan | Load test (`--loop 300`) | Panel OK | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-17 | Arduino Mega 2560, W5100 shield, XY-485 (TXD → pin 18, RXD → pin 19) | 8.1, Serial1, 19200 8E1, Inter-frame Delay 50 ms, IP 192.168.100.254 | 0x14 found | 299/300 (99.7 %), median 16 ms | dashes at 1 request/s, OK at 1 per 2 s and slower | first boot failed on a weak power supply |
 | | | | | | | |

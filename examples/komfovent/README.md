@@ -9,7 +9,7 @@ Home Assistant setup for a Komfovent RECU-300VEB-R-EC-C4 ventilation unit (C4 co
 | File | What it is |
 | --- | --- |
 | [`HOWTO_WAVESHARE.md`](HOWTO_WAVESHARE.md) | Step by step with the **Waveshare RS485 TO POE ETH (B)** gateway: wiring, sniffing the bus, VirCom settings, finding the Modbus ID, Home Assistant and the card. **Tested.** |
-| [`HOWTO_BUDULINEK.md`](HOWTO_BUDULINEK.md) | Step by step with the open-source **budulinek Arduino gateway**: parts, wiring, firmware, web UI settings, tests, Home Assistant and the card. **Not tested on the unit yet.** |
+| [`HOWTO_BUDULINEK.md`](HOWTO_BUDULINEK.md) | Step by step with the open-source **budulinek Arduino gateway**: parts, wiring, firmware, web UI settings, tests, Home Assistant and the card. **Tested** with an Arduino Mega 2560 + W5100 shield + XY-485. |
 | `komfovent_configuration.yaml` | `modbus`, `template`, `script` and `automation` blocks for `configuration.yaml` (comments in Slovak): sensors, switches, writable selects/numbers (template entities calling `modbus.write_register`), weekly schedule, alarm notification and daily clock sync. |
 | `komfovent-card.yaml` | Dashboard card using [`komfovent-card.js`](../../komfovent-card.js). |
 | `tools/` | `komfovent_sniffer.py` (passive bus sniffer), `komfovent_test.py` (ID scan and load test), `fake_c4.py` + `C4_registers.json` (C4 simulator over TCP or RTU). |
@@ -23,12 +23,13 @@ The examples use **192.168.1.200** for the gateway – replace it with a free ad
 - **Modbus ID of the unit: 20** (register 1006, range 1–100). The wall panel is a Modbus master and polls **ID 254** (registers 10900–10909) once per second; the unit answers within ~30 ms and the bus is idle about 96 % of the time. Do not use 254 from Home Assistant.
 - **Addresses:** the C4 manual numbers registers from 1, Home Assistant sends 0-based addresses – every address in the YAML is one lower (1000 → 999).
 - A second Modbus master (the gateway) on the panel bus works when it **waits for an idle bus** before sending.
+- **Keep the request rate low:** at about one request per second from the second master the panel starts showing dashes; one request every 2 s or less is fine. The example configuration reads three register blocks (~0.15 requests/s).
 
 ## Choosing a gateway
 
 | | Waveshare RS485 TO POE ETH (B) | budulinek Arduino gateway |
 | --- | --- | --- |
-| Status with this unit | tested, 99.7 % successful reads with the panel connected | not tested yet |
+| Status with this unit | tested, 99.7 % successful reads with the panel connected | tested (Arduino Mega 2560 + W5100 + XY-485), 99.7 % successful reads |
 | Hardware | ready-made DIN-rail device | Arduino Nano/Uno/Mega + W5500 + auto-direction RS485 module, self-built |
 | Software | closed firmware, Windows tool VirCom or web page | open source, web UI, defaults in `advanced_settings.h` |
 | Power | PoE or 6–36 V DC (also directly from J1 pin 3) | regulated 5 V – DC-DC converter from J1 pin 3 |
@@ -41,7 +42,7 @@ The examples use **192.168.1.200** for the gateway – replace it with a free ad
 
 **Waveshare – pros:** works out of the box and is proven with this unit, isolated RS485, PoE, transparent mode for sniffing and diagnosing the wiring. **Cons:** closed firmware, configuration needs Windows (VirCom), some VirCom options silently do not stick (bus conflict detection with the simple gateway type), forwards the panel traffic into the Home Assistant log.
 
-**budulinek – pros:** open source and cheap, a clean Home Assistant log, built-in statistics and slave scan show at once whether the wiring and the ID are right, settings in a browser on any OS. **Cons:** has to be built and flashed, needs a 5 V DC-DC converter, no isolation, no transparent mode for sniffing, Ethernet power-on reset issue on some W5x00 modules, not yet tested with the C4.
+**budulinek – pros:** open source and cheap, a clean Home Assistant log, built-in statistics and slave scan show at once whether the wiring and the ID are right, settings in a browser on any OS. **Cons:** has to be built and flashed, needs a 5 V DC-DC converter, no isolation, no transparent mode for sniffing, Ethernet power-on reset issue on some W5x00 modules, sensitive to a weak power supply (W5x00 drops off the network).
 
 ## Komfovent Card
 

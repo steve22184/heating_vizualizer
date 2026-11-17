@@ -1,30 +1,45 @@
 # ============================================================
-# Komfovent RECU-300VEB-R-EC-C4 — Home Assistant Modbus (opravené)
+# Komfovent RECU-300VEB-R-EC-C4 — Home Assistant Modbus
 # ============================================================
-# ZMENY OPROTI PÔVODNEJ VERZII
+# POZNÁMKY
 #  1) HA modbus NEPODPORUJE "selects:" ani "numbers:" -> celý modbus hub
-#     sa kvôli tomu nenačítal. Nahradené template select/number,
-#     ktoré zapisujú cez modbus.write_register.
-#  2) Adresy: manuál C4 číslue registre od 1, HA posiela adresu od 0
+#     sa kvôli tomu nenačíta. Zápis robia template select/number/switch
+#     cez modbus.write_register.
+#  2) Adresy: manuál C4 čísluje registre od 1, HA posiela adresu od 0
 #     -> všetky adresy sú o 1 menšie (1000 -> 999, 1200 -> 1199 ...).
-#  3) SLAVE_ID = 20 (overené: register 1006 = 20). NEPOUŽÍVAJ 254 –
+#  3) SLAVE ID = 20 (overené: register 1006 = 20). NEPOUŽÍVAJ 254 –
 #     na 254 sa pýta panel a jeho odpovede by sa mohli zameniť s odpoveďami pre HA.
+#  4) MÁLO DOTAZOV: nástenný panel začne ukazovať pomlčky, keď sa na zbernicu
+#     pýta druhý master približne raz za sekundu (pri 1 dotaze za 2 s je OK).
+#     Preto HA číta jednotku po blokoch registrov (1000–1013, 1100–1116,
+#     1200–1205) a jednotlivé hodnoty rozdelia template senzory.
+#     Priemer ~0,15 dotazu za sekundu (predtým ~0,95 a v dávkach).
 #
 # HARDVÉR (overené odpočúvaním 16.11.2026)
 #   J1 RJ45 (číslovanie podľa výkresu Komfovent):
-#     Pin 3 +20 VDC -> Waveshare napájanie +
-#     Pin 4 A       -> Waveshare TDA
-#     Pin 5 B       -> Waveshare TDB
-#     Pin 6 GND     -> Waveshare GND (napájanie)
-#   Waveshare: Modbus_TCP Protocol, 19200 8E1, Max Interval 3 ms,
-#     Gateway type: Multi-host non-storage, bus conflict detection 50 ms
-#   Panel ostáva zapojený (pýta sa ID 254 raz za sekundu).
+#     Pin 3 +20 VDC (napájanie panelu), Pin 4 A, Pin 5 B, Pin 6 GND
+#   RS485: 19200 8E1 (pevné). Panel ostáva zapojený (pýta sa ID 254 raz za sekundu).
+#   Brána musí pred vysielaním čakať na voľnú zbernicu:
+#     Waveshare: Modbus_TCP Protocol, Multi-host non-storage, bus conflict detection 50 ms
+#     budulinek: Modbus TCP/UDP, Inter-frame Delay 50 ms
+#
+# PRECHOD ZO STAREJ VERZIE (jednotlivé modbus senzory -> bloky)
+#   Template senzory majú rovnaké názvy ako staré modbus senzory. Kým v HA
+#   existujú staré záznamy, nové by dostali entity_id s príponou _2. Preto:
+#   1. Vlož túto konfiguráciu, ale sekciu "template:" (ČASŤ 2) nechaj zatiaľ
+#      zakomentovanú. Reštartuj HA.
+#   2. Nastavenia -> Zariadenia a služby -> Entity, hľadaj "komfovent":
+#      staré modbus senzory majú stav "Neposkytované" – označ ich a odstráň.
+#   3. Odkomentuj ČASŤ 2 a reštartuj HA (alebo Nástroje pre vývojárov ->
+#      YAML -> Znovu načítať template entity).
 # ============================================================
 
+# ============================================================
+# ČASŤ 1 – modbus, skript, automatizácie
+# ============================================================
 modbus:
   - name: komfovent_c4
-    type: tcp                  # Waveshare v režime "Modbus TCP to RTU"
-    # type: rtuovertcp         # použi ak je Waveshare v režime "None" (transparent)
+    type: tcp
     host: 192.168.1.200          # IP adresa tvojej brány
     port: 502
     timeout: 5
@@ -39,6 +54,7 @@ modbus:
         write_type: holding
         command_on: 1
         command_off: 0
+        scan_interval: 60       # overenie stavu; rýchla zmena je v bloku 1000
         verify:
           input_type: holding
           address: 999
@@ -52,6 +68,7 @@ modbus:
         write_type: holding
         command_on: 1
         command_off: 0
+        scan_interval: 60
         verify:
           input_type: holding
           address: 1110
@@ -59,91 +76,53 @@ modbus:
           state_off: 0
 
     sensors:
-      # --- teploty --------------------------------------------------
-      - name: "Komfovent Supply Air Temp"
-        unique_id: komfovent_supply_temp
+      # --- blok 1000..1013 (14 registrov) -------------------------------
+      # idx: 0 Start/Stop, 1 sezóna, 2 čas (h*256+m), 3 deň v týždni 1..7,
+      #      4 mesiac*256+deň, 5 rok, 6 Modbus adresa, 7 varovania,
+      #      8 stop príznaky, 9 stop kód, 10 rekuperátor %, 11 el. ohrev %,
+      #      12 vodný ohrev %, 13 vodné chladenie %
+      - name: "Komfovent Block 1000"
+        unique_id: komfovent_block_1000
         slave: 20
-        address: 1199           # doc 1200
+        address: 999
         input_type: holding
-        data_type: int16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "°C"
-        device_class: temperature
-        state_class: measurement
+        data_type: custom
+        structure: ">14H"
+        count: 14
+        precision: 0            # bez desatinných miest (stav max. 255 znakov)
         scan_interval: 30
 
-      - name: "Komfovent Setpoint Temp"
-        unique_id: komfovent_setpoint_temp
+      # --- blok 1100..1116 (17 registrov) -------------------------------
+      # idx: 0 nastavený stupeň 1..3, 1 aktuálny stupeň 0..4, 2 režim (0 man, 1 auto),
+      #      3..6 prívod stupeň 1..4 %, 7..10 odvod stupeň 1..4 %,
+      #      11 OVR zap., 12 OVR čas min, 13 OVR zostáva min,
+      #      14 ventilátory bežia, 15 prívodný vent. %, 16 odvodný vent. %
+      - name: "Komfovent Block 1100"
+        unique_id: komfovent_block_1100
         slave: 20
-        address: 1200           # doc 1201
+        address: 1099
         input_type: holding
-        data_type: int16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "°C"
-        device_class: temperature
+        data_type: custom
+        structure: ">17H"
+        count: 17
+        precision: 0
+        scan_interval: 20
+
+      # --- blok 1200..1205 (6 registrov, so znamienkom) ------------------
+      # idx: 0 teplota prívodu x10, 1 žiadaná x10, 2 korekcia x10,
+      #      3 korekcia začiatok, 4 korekcia koniec, 5 teplota vody x10 (32767 = nezapojené)
+      - name: "Komfovent Block 1200"
+        unique_id: komfovent_block_1200
+        slave: 20
+        address: 1199
+        input_type: holding
+        data_type: custom
+        structure: ">6h"
+        count: 6
+        precision: 0
         scan_interval: 30
 
-      - name: "Komfovent Temp Correction"
-        unique_id: komfovent_temp_correction
-        slave: 20
-        address: 1201           # doc 1202
-        input_type: holding
-        data_type: int16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "°C"
-        scan_interval: 60
-
-      - name: "Komfovent Water Temp"
-        unique_id: komfovent_water_temp
-        slave: 20
-        address: 1204           # doc 1205
-        input_type: holding
-        data_type: int16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "°C"
-        device_class: temperature
-        state_class: measurement
-        scan_interval: 60
-
-      # --- hodiny jednotky (doc 1002..1005) ----------------------------
-      - name: "Komfovent Clock Raw"
-        unique_id: komfovent_clock_raw
-        slave: 20
-        address: 1001           # doc 1002  hodina*256 + minúta (8:05 = 0x0805)
-        input_type: holding
-        data_type: uint16
-        scan_interval: 60
-
-      - name: "Komfovent Day Of Week Raw"
-        unique_id: komfovent_dow_raw
-        slave: 20
-        address: 1002           # doc 1003  1=Po .. 7=Ne
-        input_type: holding
-        data_type: uint16
-        scan_interval: 600
-
-      - name: "Komfovent Month Day Raw"
-        unique_id: komfovent_month_day_raw
-        slave: 20
-        address: 1003           # doc 1004  mesiac*256 + deň (9. máj = 0x0509)
-        input_type: holding
-        data_type: uint16
-        scan_interval: 600
-
-      - name: "Komfovent Year Raw"
-        unique_id: komfovent_year_raw
-        slave: 20
-        address: 1004           # doc 1005  napr. 2026
-        input_type: holding
-        data_type: uint16
-        scan_interval: 3600
-
-      # --- týždenný program (doc 1300..1362) -------------------------
-      # Jeden senzor = jedno čítanie bloku; stav je zoznam hodnôt oddelených čiarkou.
+      # --- týždenný program (doc 1300..1362) ----------------------------
       # Časy: hodina*256 + minúta (06:30 = 0x061E = 1566, 24:00 = 0x1800).
       # Poradie: Po1 začiatok, Po1 koniec, Po2 z., Po2 k., Po3 z., Po3 k., Ut1 z., ... Ne3 k.
       - name: "Komfovent Schedule Times"
@@ -154,7 +133,7 @@ modbus:
         data_type: custom
         structure: ">42H"
         count: 42
-        precision: 0            # bez desatinných miest, inak je stav > 255 znakov
+        precision: 0
         scan_interval: 300
 
       # Stupeň vetrania pre každý úsek: Po1, Po2, Po3, Ut1, ... Ne3 (0 = vyp, 1..3)
@@ -166,315 +145,8 @@ modbus:
         data_type: custom
         structure: ">21H"
         count: 21
-        precision: 0            # bez desatinných miest, inak je stav > 255 znakov
+        precision: 0
         scan_interval: 300
-
-      # --- režimy (čítanie pre template select) ---------------------
-      - name: "Komfovent Season Raw"
-        unique_id: komfovent_season_raw
-        slave: 20
-        address: 1000           # doc 1001  0=Summer 1=Winter
-        input_type: holding
-        data_type: uint16
-        scan_interval: 60
-
-      - name: "Komfovent Ventilation Level Set"
-        unique_id: komfovent_vent_level_set
-        slave: 20
-        address: 1099           # doc 1100  1..3
-        input_type: holding
-        data_type: uint16
-        scan_interval: 10
-
-      - name: "Komfovent Ventilation Level Current"
-        unique_id: komfovent_vent_level_current
-        slave: 20
-        address: 1100           # doc 1101  0..4
-        input_type: holding
-        data_type: uint16
-        scan_interval: 10
-
-      - name: "Komfovent Control Mode Raw"
-        unique_id: komfovent_control_mode_raw
-        slave: 20
-        address: 1101           # doc 1102  0=Manual 1=Auto
-        input_type: holding
-        data_type: uint16
-        scan_interval: 30
-
-      # --- výkony ---------------------------------------------------
-      - name: "Komfovent Recuperator Level"
-        unique_id: komfovent_recuperator_level
-        slave: 20
-        address: 1009           # doc 1010
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        state_class: measurement
-        scan_interval: 30
-
-      - name: "Komfovent Electric Heater Level"
-        unique_id: komfovent_el_heater_level
-        slave: 20
-        address: 1010           # doc 1011
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        state_class: measurement
-        scan_interval: 30
-
-      - name: "Komfovent Water Heating Level"
-        unique_id: komfovent_water_heating_level
-        slave: 20
-        address: 1011           # doc 1012
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        state_class: measurement
-        scan_interval: 30
-
-      - name: "Komfovent Water Cooling Level"
-        unique_id: komfovent_water_cooling_level
-        slave: 20
-        address: 1012           # doc 1013
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        state_class: measurement
-        scan_interval: 30
-
-      - name: "Komfovent AHU Fans Status"
-        unique_id: komfovent_fans_status
-        slave: 20
-        address: 1113           # doc 1114  1=Operating 0=Stopped
-        input_type: holding
-        data_type: uint16
-        scan_interval: 15
-
-      - name: "Komfovent Supply Fan Current"
-        unique_id: komfovent_supply_fan
-        slave: 20
-        address: 1114           # doc 1115
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        state_class: measurement
-        scan_interval: 15
-
-      - name: "Komfovent Exhaust Fan Current"
-        unique_id: komfovent_exhaust_fan
-        slave: 20
-        address: 1115           # doc 1116
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        state_class: measurement
-        scan_interval: 15
-
-      - name: "Komfovent OVR Time"
-        unique_id: komfovent_ovr_time
-        slave: 20
-        address: 1111           # doc 1112
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "min"
-        scan_interval: 60
-
-      - name: "Komfovent OVR Time Remaining"
-        unique_id: komfovent_ovr_remaining
-        slave: 20
-        address: 1112           # doc 1113
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "min"
-        scan_interval: 30
-
-      # --- intenzity ventilátorov (doc 1103..1110) -> 1102..1109 ----
-      # Načítané naraz ako jeden blok + rozdelené cez slave_count
-      - name: "Komfovent Intake Fan Level 1"
-        unique_id: komfovent_intake_l1
-        slave: 20
-        address: 1102
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        scan_interval: 300
-        slave_count: 7          # vytvorí ďalších 7 senzorov: 1103..1109
-        # (_1.._3 = Intake L2..L4, _4.._7 = Exhaust L1..L4)
-
-      # --- alarmy ---------------------------------------------------
-      - name: "Komfovent Alarm Warnings"
-        unique_id: komfovent_alarm_warnings
-        slave: 20
-        address: 1006           # doc 1007
-        input_type: holding
-        data_type: uint16
-        scan_interval: 60
-
-      - name: "Komfovent Alarm Stop Flags"
-        unique_id: komfovent_alarm_stop_flags
-        slave: 20
-        address: 1007           # doc 1008
-        input_type: holding
-        data_type: uint16
-        scan_interval: 60
-
-      - name: "Komfovent Alarm Stop Code"
-        unique_id: komfovent_alarm_stop_code
-        slave: 20
-        address: 1008           # doc 1009
-        input_type: holding
-        data_type: uint16
-        scan_interval: 60
-
-# ----------------------------------------------------------
-# Zapisovateľné entity (náhrada za modbus selects/numbers)
-# ----------------------------------------------------------
-template:
-  - select:
-      - name: "Komfovent Season"
-        unique_id: komfovent_season_select
-        options: "{{ ['Summer', 'Winter'] }}"
-        state: "{{ 'Winter' if states('sensor.komfovent_season_raw') == '1' else 'Summer' }}"
-        select_option:
-          - action: modbus.write_register
-            data:
-              hub: komfovent_c4
-              slave: 20
-              address: 1000
-              value: "{{ 1 if option == 'Winter' else 0 }}"
-          - action: homeassistant.update_entity
-            data:
-              entity_id: sensor.komfovent_season_raw
-
-      - name: "Komfovent Ventilation Level"
-        unique_id: komfovent_vent_level_select
-        options: "{{ ['Level 1', 'Level 2', 'Level 3'] }}"
-        state: >
-          {% set v = states('sensor.komfovent_ventilation_level_set') | int(0) %}
-          {{ 'Level ' ~ v if v in [1, 2, 3] else 'Level 1' }}
-        select_option:
-          - action: modbus.write_register
-            data:
-              hub: komfovent_c4
-              slave: 20
-              address: 1099
-              value: "{{ option[-1] | int }}"
-          - action: homeassistant.update_entity
-            data:
-              entity_id: sensor.komfovent_ventilation_level_set
-
-      - name: "Komfovent Control Mode"
-        unique_id: komfovent_control_mode_select
-        options: "{{ ['Manual', 'Auto'] }}"
-        state: "{{ 'Auto' if states('sensor.komfovent_control_mode_raw') == '1' else 'Manual' }}"
-        select_option:
-          - action: modbus.write_register
-            data:
-              hub: komfovent_c4
-              slave: 20
-              address: 1101
-              value: "{{ 1 if option == 'Auto' else 0 }}"
-          - action: homeassistant.update_entity
-            data:
-              entity_id: sensor.komfovent_control_mode_raw
-
-  - number:
-      - name: "Komfovent Temp Setpoint"
-        unique_id: komfovent_setpoint_number
-        unit_of_measurement: "°C"
-        min: 10
-        max: 30
-        step: 0.5
-        state: "{{ states('sensor.komfovent_setpoint_temp') | float(20) }}"
-        set_value:
-          - action: modbus.write_register
-            data:
-              hub: komfovent_c4
-              slave: 20
-              address: 1200
-              value: "{{ (value * 10) | int }}"
-          - action: homeassistant.update_entity
-            data:
-              entity_id: sensor.komfovent_setpoint_temp
-
-      - name: "Komfovent OVR Time Set"
-        unique_id: komfovent_ovr_time_number
-        unit_of_measurement: "min"
-        min: 1
-        max: 90
-        step: 1
-        state: "{{ states('sensor.komfovent_ovr_time') | int(30) }}"
-        set_value:
-          - action: modbus.write_register
-            data:
-              hub: komfovent_c4
-              slave: 20
-              address: 1111
-              value: "{{ value | int }}"
-          - action: homeassistant.update_entity
-            data:
-              entity_id: sensor.komfovent_ovr_time
-
-  - binary_sensor:
-      - name: "Komfovent Fans Running"
-        unique_id: komfovent_fans_running
-        device_class: running
-        # reg 1114: 1 = ventilátory bežia (spoľahlivejšie ako 1000, ktorý občas hlási 0)
-        state: "{{ is_state('sensor.komfovent_ahu_fans_status', '1') }}"
-        availability: "{{ has_value('sensor.komfovent_ahu_fans_status') }}"
-
-      - name: "Komfovent Power Mismatch"
-        unique_id: komfovent_power_mismatch
-        device_class: problem
-        # zapne sa, keď 1000 hlási Stop, ale ventilátory podľa 1114 bežia (alebo naopak)
-        state: >
-          {{ has_value('switch.komfovent_power') and has_value('sensor.komfovent_ahu_fans_status')
-             and (is_state('switch.komfovent_power', 'on') != is_state('sensor.komfovent_ahu_fans_status', '1')) }}
-        delay_on: "00:02:00"
-
-  - sensor:
-      - name: "Komfovent Clock"
-        unique_id: komfovent_clock
-        icon: mdi:clock-outline
-        state: >
-          {% set t = states('sensor.komfovent_clock_raw') | int(-1) %}
-          {% if t >= 0 %}{{ '%02d:%02d' | format(t // 256, t % 256) }}{% else %}unknown{% endif %}
-
-      - name: "Komfovent Date"
-        unique_id: komfovent_date
-        icon: mdi:calendar
-        state: >
-          {% set md = states('sensor.komfovent_month_day_raw') | int(-1) %}
-          {% set y = states('sensor.komfovent_year_raw') | int(-1) %}
-          {% set d = states('sensor.komfovent_day_of_week_raw') | int(0) %}
-          {% set dni = ['', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'] %}
-          {% if md >= 0 and y > 0 %}
-            {{ dni[d] if 0 < d < 8 else '?' }} {{ md % 256 }}.{{ md // 256 }}.{{ y }}
-          {% else %}unknown{% endif %}
-
-      - name: "Komfovent Clock Drift"
-        unique_id: komfovent_clock_drift
-        unit_of_measurement: "min"
-        icon: mdi:clock-alert-outline
-        state: >
-          {% set t = states('sensor.komfovent_clock_raw') | int(-1) %}
-          {% if t >= 0 %}
-            {% set diff = (t // 256) * 60 + (t % 256) - (now().hour * 60 + now().minute) %}
-            {% if diff > 720 %}{% set diff = diff - 1440 %}{% elif diff < -720 %}{% set diff = diff + 1440 %}{% endif %}
-            {{ diff }}
-          {% else %}unknown{% endif %}
-
-      - name: "Komfovent Alarm Status"
-        icon: >
-          {{ 'mdi:alert-circle' if states('sensor.komfovent_alarm_stop_code') | int(0) > 0 else 'mdi:check-circle' }}
-        state: >
-          {% set code = states('sensor.komfovent_alarm_stop_code') | int(0) %}
-          {% set names = {0: 'OK', 3: 'Rotor stop', 4: 'Heater overheating',
-                          9: 'Supply sensor B1 fault', 19: 'Air temp too low',
-                          20: 'Air temp too high', 27: 'Water temp low',
-                          28: 'Frost possibility'} %}
-          {{ names.get(code, 'Alarm ' ~ code) }}
 
 # ----------------------------------------------------------
 # Synchronizácia hodín jednotky s časom HA
@@ -520,11 +192,7 @@ script:
       - delay: "00:00:02"
       - action: homeassistant.update_entity
         data:
-          entity_id:
-            - sensor.komfovent_clock_raw
-            - sensor.komfovent_day_of_week_raw
-            - sensor.komfovent_month_day_raw
-            - sensor.komfovent_year_raw
+          entity_id: sensor.komfovent_block_1000
 
 automation:
   - alias: "Komfovent: Alarm notification"
@@ -567,3 +235,324 @@ automation:
         for: "00:10:00"
     actions:
       - action: script.komfovent_sync_clock
+
+# ============================================================
+# ČASŤ 2 – template entity (hodnoty z blokov a zápis)
+# Pri prechode zo starej verzie najskôr zakomentuj – pozri hlavičku.
+# ============================================================
+template:
+  # ---------- zapisovateľné entity ----------
+  - select:
+      - name: "Komfovent Season"
+        unique_id: komfovent_season_select
+        options: "{{ ['Summer', 'Winter'] }}"
+        state: >
+          {% set v = states('sensor.komfovent_block_1000').split(',') %}
+          {{ 'Winter' if v | length == 14 and v[1] == '1' else 'Summer' }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+        select_option:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1000     # doc 1001
+              value: "{{ 1 if option == 'Winter' else 0 }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1000
+
+      - name: "Komfovent Ventilation Level"
+        unique_id: komfovent_vent_level_select
+        options: "{{ ['Level 1', 'Level 2', 'Level 3'] }}"
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {% set l = v[0] | int(0) if v | length == 17 else 0 %}
+          {{ 'Level ' ~ l if l in [1, 2, 3] else 'Level 1' }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+        select_option:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1099     # doc 1100
+              value: "{{ option[-1] | int }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1100
+
+      - name: "Komfovent Control Mode"
+        unique_id: komfovent_control_mode_select
+        options: "{{ ['Manual', 'Auto'] }}"
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {{ 'Auto' if v | length == 17 and v[2] == '1' else 'Manual' }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+        select_option:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1101     # doc 1102
+              value: "{{ 1 if option == 'Auto' else 0 }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1100
+
+  - number:
+      - name: "Komfovent Temp Setpoint"
+        unique_id: komfovent_setpoint_number
+        unit_of_measurement: "°C"
+        min: 10
+        max: 30
+        step: 0.5
+        state: >
+          {% set v = states('sensor.komfovent_block_1200').split(',') %}
+          {{ (v[1] | int(200)) / 10 if v | length == 6 else 20 }}
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+        set_value:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1200     # doc 1201
+              value: "{{ (value * 10) | int }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1200
+
+      - name: "Komfovent OVR Time Set"
+        unique_id: komfovent_ovr_time_number
+        unit_of_measurement: "min"
+        min: 1
+        max: 90
+        step: 1
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {{ v[12] | int(30) if v | length == 17 else 30 }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+        set_value:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1111     # doc 1112
+              value: "{{ value | int }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1100
+
+  # ---------- stav ventilátorov ----------
+  - binary_sensor:
+      - name: "Komfovent Fans Running"
+        unique_id: komfovent_fans_running
+        device_class: running
+        # reg 1114: 1 = ventilátory bežia (spoľahlivejšie ako 1000, ktorý občas hlási 0)
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {{ v | length == 17 and v[14] == '1' }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Power Mismatch"
+        unique_id: komfovent_power_mismatch
+        device_class: problem
+        # zapne sa, keď 1000 hlási Stop, ale ventilátory podľa 1114 bežia (alebo naopak)
+        state: >
+          {% set a = states('sensor.komfovent_block_1000').split(',') %}
+          {% set b = states('sensor.komfovent_block_1100').split(',') %}
+          {{ a | length == 14 and b | length == 17 and (a[0] == '1') != (b[14] == '1') }}
+        delay_on: "00:02:00"
+
+  # ---------- hodnoty z bloku 1200 ----------
+  - sensor:
+      - name: "Komfovent Supply Air Temp"
+        unique_id: komfovent_t_supply_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[0] | int) / 10 }}"
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+
+      - name: "Komfovent Setpoint Temp"
+        unique_id: komfovent_t_setpoint_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[1] | int) / 10 }}"
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+
+      - name: "Komfovent Temp Correction"
+        unique_id: komfovent_t_temp_correction
+        unit_of_measurement: "°C"
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[2] | int) / 10 }}"
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+
+      - name: "Komfovent Water Temp"
+        unique_id: komfovent_t_water_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[5] | int) / 10 }}"
+        # 32767 = snímač nie je zapojený
+        availability: >
+          {% set v = states('sensor.komfovent_block_1200').split(',') %}
+          {{ v | length == 6 and v[5] | int(32767) != 32767 }}
+
+  # ---------- hodnoty z bloku 1000 ----------
+      - name: "Komfovent Recuperator Level"
+        unique_id: komfovent_t_recuperator_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[10] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Electric Heater Level"
+        unique_id: komfovent_t_el_heater_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[11] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Water Heating Level"
+        unique_id: komfovent_t_water_heating_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[12] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Water Cooling Level"
+        unique_id: komfovent_t_water_cooling_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[13] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Alarm Warnings"
+        unique_id: komfovent_t_alarm_warnings
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[7] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Alarm Stop Flags"
+        unique_id: komfovent_t_alarm_stop_flags
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[8] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Alarm Stop Code"
+        unique_id: komfovent_t_alarm_stop_code
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[9] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Clock"
+        unique_id: komfovent_clock
+        icon: mdi:clock-outline
+        state: >
+          {% set t = states('sensor.komfovent_block_1000').split(',')[2] | int %}
+          {{ '%02d:%02d' | format(t // 256, t % 256) }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Date"
+        unique_id: komfovent_date
+        icon: mdi:calendar
+        state: >
+          {% set v = states('sensor.komfovent_block_1000').split(',') %}
+          {% set d = v[3] | int %}
+          {% set md = v[4] | int %}
+          {% set dni = ['', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'] %}
+          {{ dni[d] if 0 < d < 8 else '?' }} {{ md % 256 }}.{{ md // 256 }}.{{ v[5] }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Clock Drift"
+        unique_id: komfovent_clock_drift
+        unit_of_measurement: "min"
+        icon: mdi:clock-alert-outline
+        state: >
+          {% set t = states('sensor.komfovent_block_1000').split(',')[2] | int %}
+          {% set diff = (t // 256) * 60 + (t % 256) - (now().hour * 60 + now().minute) %}
+          {% if diff > 720 %}{% set diff = diff - 1440 %}{% elif diff < -720 %}{% set diff = diff + 1440 %}{% endif %}
+          {{ diff }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+  # ---------- hodnoty z bloku 1100 ----------
+      - name: "Komfovent Ventilation Level Current"
+        unique_id: komfovent_t_vent_level_current
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[1] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Supply Fan Current"
+        unique_id: komfovent_t_supply_fan
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[15] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Current"
+        unique_id: komfovent_t_exhaust_fan
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[16] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent OVR Time Remaining"
+        unique_id: komfovent_t_ovr_remaining
+        unit_of_measurement: "min"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[13] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 1"
+        unique_id: komfovent_t_intake_l1
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[3] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 2"
+        unique_id: komfovent_t_intake_l2
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[4] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 3"
+        unique_id: komfovent_t_intake_l3
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[5] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 4"
+        unique_id: komfovent_t_intake_l4
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[6] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 1"
+        unique_id: komfovent_t_exhaust_l1
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[7] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 2"
+        unique_id: komfovent_t_exhaust_l2
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[8] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 3"
+        unique_id: komfovent_t_exhaust_l3
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[9] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 4"
+        unique_id: komfovent_t_exhaust_l4
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[10] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+  # ---------- text alarmu ----------
+      - name: "Komfovent Alarm Status"
+        unique_id: komfovent_alarm_status
+        icon: >
+          {{ 'mdi:alert-circle' if states('sensor.komfovent_alarm_stop_code') | int(0) > 0 else 'mdi:check-circle' }}
+        state: >
+          {% set code = states('sensor.komfovent_alarm_stop_code') | int(0) %}
+          {% set names = {0: 'OK', 3: 'Rotor stop', 4: 'Heater overheating',
+                          9: 'Supply sensor B1 fault', 19: 'Air temp too low',
+                          20: 'Air temp too high', 27: 'Water temp low',
+                          28: 'Frost possibility'} %}
+          {{ names.get(code, 'Alarm ' ~ code) }}
