@@ -117,7 +117,7 @@ No unit at hand? `tools/fake_c4.py --tcp` serves a register dump of a real C4 as
 
 ## 6. Home Assistant configuration
 
-Add the blocks from [`komfovent_configuration.yaml`](komfovent_configuration.yaml) to `configuration.yaml` (merge them with existing `template:`, `script:` and `automation:` sections instead of adding second ones). Set `host` to the gateway IP and `slave:` to your ID if it is not 20.
+Add the blocks from [`komfovent_configuration.yaml`](komfovent_configuration.yaml) to `configuration.yaml` (merge them with existing `template:`, `script:` and `automation:` sections instead of adding second ones). Set `host` to the gateway IP and `slave:` to your ID if it is not 20. The same file works with the budulinek gateway as well – only `host` changes (see the [README](README.md#one-configuration-for-both-gateways)).
 
 Things the file takes care of:
 

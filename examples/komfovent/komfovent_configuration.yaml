@@ -19,9 +19,15 @@
 #   J1 RJ45 (číslovanie podľa výkresu Komfovent):
 #     Pin 3 +20 VDC (napájanie panelu), Pin 4 A, Pin 5 B, Pin 6 GND
 #   RS485: 19200 8E1 (pevné). Panel ostáva zapojený (pýta sa ID 254 raz za sekundu).
-#   Brána musí pred vysielaním čakať na voľnú zbernicu:
+#
+# JEDNA KONFIGURÁCIA PRE OBE BRÁNY
+#   Platí bez zmeny pre Waveshare RS485 TO POE ETH (B) aj pre budulinek
+#   Arduino gateway – mení sa len "host" na IP použitej brány.
+#   Brána musí byť v režime Modbus TCP a pred vysielaním čakať na voľnú zbernicu:
 #     Waveshare: Modbus_TCP Protocol, Multi-host non-storage, bus conflict detection 50 ms
 #     budulinek: Modbus TCP/UDP, Inter-frame Delay 50 ms
+#   Na J1 zapoj vždy len jednu bránu. Pri Waveshare pridaj do configuration.yaml
+#   logger s "pymodbus.logging: error" (Waveshare preposiela aj komunikáciu panelu).
 #
 # PRECHOD ZO STAREJ VERZIE (jednotlivé modbus senzory -> bloky)
 #   Template senzory majú rovnaké názvy ako staré modbus senzory. Kým v HA
@@ -40,7 +46,7 @@
 modbus:
   - name: komfovent_c4
     type: tcp
-    host: 192.168.1.200          # IP adresa tvojej brány
+    host: 192.168.1.200          # IP adresa tvojej brány (Waveshare alebo budulinek)
     port: 502
     timeout: 5
     delay: 1

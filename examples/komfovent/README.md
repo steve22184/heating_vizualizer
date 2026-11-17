@@ -16,6 +16,19 @@ Home Assistant setup for a Komfovent RECU-300VEB-R-EC-C4 ventilation unit (C4 co
 
 The examples use **192.168.1.200** for the gateway – replace it with a free address in your LAN.
 
+### One configuration for both gateways
+
+`komfovent_configuration.yaml` works unchanged with the Waveshare and with the budulinek gateway – only `host` changes to the IP of the gateway in use (`type: tcp`, Modbus ID 20, register blocks and the card stay the same). The gateway itself has to be set up like this:
+
+| | Waveshare RS485 TO POE ETH (B) | budulinek gateway |
+| --- | --- | --- |
+| Mode | Transfer Protocol **Modbus_TCP Protocol** | Modbus Mode **Modbus TCP/UDP** |
+| Waiting for an idle bus | Gateway Type **Multi-host non-storage** + RS485 bus conflict detection **50 ms** | Inter-frame Delay **50 ms** |
+| RS485 | 19200 8E1 | 19200 8E1 |
+| Logger filter `pymodbus.logging: error` | recommended (the gateway forwards the panel traffic) | not needed |
+
+Connect only **one** gateway to J1 at a time – the panel plus two gateways would be three masters on the bus.
+
 ## The unit (verified)
 
 - **J1** RJ45 on the unit, numbering as in the Komfovent drawing (pins counted on the plug of the panel cable): pin 3 +20 V DC (panel supply), pin 4 A, pin 5 B, pin 6 GND.
