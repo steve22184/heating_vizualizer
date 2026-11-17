@@ -3,7 +3,7 @@
 # Entities come from komfovent_configuration.yaml in this folder.
 type: custom:komfovent-card
 # name: Ventilation       # optional, defaults to the translated title
-show_controls: true
+show_controls: true          # C4.1-style panel next to the schema
 show_schedule: true          # weekly schedule (needs the two schedule sensors)
 modbus_hub: komfovent_c4     # hub used to write the schedule
 modbus_slave: 20             # Modbus ID of the unit
@@ -27,3 +27,13 @@ modbus_slave: 20             # Modbus ID of the unit
 #   clock: sensor.komfovent_clock
 #   schedule_times: sensor.komfovent_schedule_times
 #   schedule_levels: sensor.komfovent_schedule_levels
+#   block_1000: sensor.komfovent_block_1000
+#   block_1100: sensor.komfovent_block_1100
+#   block_1200: sensor.komfovent_block_1200
+#   water_temp: sensor.komfovent_water_temp
+#   water_heating: sensor.komfovent_water_heating_level
+#   water_cooling: sensor.komfovent_water_cooling_level
+#   alarm_code: sensor.komfovent_alarm_stop_code
+#   date: sensor.komfovent_date
+#   drift: sensor.komfovent_clock_drift
+#   sync_script: script.komfovent_sync_clock

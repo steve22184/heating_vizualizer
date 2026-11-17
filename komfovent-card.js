@@ -19,7 +19,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.1.1";
+const VERSION = "1.2.0";
 
 const DEFAULT_ENTITIES = {
   power: "switch.komfovent_power",
@@ -40,6 +40,17 @@ const DEFAULT_ENTITIES = {
   clock: "sensor.komfovent_clock",
   schedule_times: "sensor.komfovent_schedule_times",
   schedule_levels: "sensor.komfovent_schedule_levels",
+  // C4.1-style panel
+  block_1000: "sensor.komfovent_block_1000",
+  block_1100: "sensor.komfovent_block_1100",
+  block_1200: "sensor.komfovent_block_1200",
+  water_temp: "sensor.komfovent_water_temp",
+  water_heating: "sensor.komfovent_water_heating_level",
+  water_cooling: "sensor.komfovent_water_cooling_level",
+  alarm_code: "sensor.komfovent_alarm_stop_code",
+  date: "sensor.komfovent_date",
+  drift: "sensor.komfovent_clock_drift",
+  sync_script: "script.komfovent_sync_clock",
 };
 
 const TEXTS = {
@@ -88,6 +99,46 @@ const TEXTS = {
     bad_time: "Neplatný čas (HH:MM, 00:00–24:00, koniec po začiatku)",
     error: "Chyba zápisu",
     inactive_hint: "00:00–00:00 = úsek nepoužitý",
+    tabs: { home: "Domov", overview: "Prehľad", schedule: "Program", functions: "Funkcie", settings: "Nastavenie" },
+    modes: ["", "Mimo domu", "Doma", "Zvýšený výkon"],
+    intensity: "Intenzita vetrania",
+    flows: "Prietok vzduchu",
+    heating: "Ohrev",
+    cooling: "Chladenie",
+    recovery: "Rekuperácia",
+    fans: "Ventilátory",
+    sched_on: "Program",
+    ovr: "OVR funkcia",
+    alarm_word: "Alarm",
+    no_alarm: "Bez porúch",
+    warnings: "Varovania",
+    service_warning: "Servisný čas – skontroluj filtre (14B)",
+    details: "Podrobné informácie",
+    water_temp: "Teplota vody",
+    water_heating: "Vodný ohrev",
+    water_cooling: "Vodné chladenie",
+    current_level: "Aktuálny stupeň",
+    unit_time: "Čas jednotky",
+    alarm_history: "História alarmov (30 dní, z HA)",
+    load_history: "Načítať históriu",
+    no_history: "Žiadne alarmy za posledných 30 dní",
+    loading: "Načítavam…",
+    shift: "Posun nastavenej hodnoty",
+    shift_hint: "Posunie žiadanú teplotu o −9 až +9 °C v zadanom časovom okne (0 = vypnuté).",
+    shift_value: "Posun",
+    from: "Od",
+    to: "Do",
+    reload: "Načítať znova",
+    duration: "Trvanie",
+    ovr_hint: "Dočasný režim s vlastnou intenzitou ventilátorov (1–90 min).",
+    ovr_level4: "Intenzita OVR = stupeň 4 (registre 1106/1110).",
+    bad_value: "Neplatná hodnota",
+    schedule_enabled: "Riadenie programom",
+    sync: "Synchronizovať s HA",
+    drift: "Odchýlka od HA",
+    card_version: "Verzia karty",
+    sync_started: "Synchronizácia spustená",
+    data_missing: "Chýbajú blokové senzory (komfovent_block_1000/1100/1200) – aktualizuj konfiguráciu HA.",
   },
   en: {
     title: "Ventilation",
@@ -134,6 +185,46 @@ const TEXTS = {
     bad_time: "Invalid time (HH:MM, 00:00–24:00, end after start)",
     error: "Write error",
     inactive_hint: "00:00–00:00 = period not used",
+    tabs: { home: "Home", overview: "Overview", schedule: "Schedule", functions: "Functions", settings: "Settings" },
+    modes: ["", "Away", "Home", "Boost"],
+    intensity: "Ventilation intensity",
+    flows: "Air flow",
+    heating: "Heating",
+    cooling: "Cooling",
+    recovery: "Recovery",
+    fans: "Fans",
+    sched_on: "Schedule",
+    ovr: "OVR function",
+    alarm_word: "Alarm",
+    no_alarm: "No faults",
+    warnings: "Warnings",
+    service_warning: "Service time – check the filters (14B)",
+    details: "Detailed information",
+    water_temp: "Water temperature",
+    water_heating: "Water heating",
+    water_cooling: "Water cooling",
+    current_level: "Current level",
+    unit_time: "Unit time",
+    alarm_history: "Alarm history (30 days, from HA)",
+    load_history: "Load history",
+    no_history: "No alarms in the last 30 days",
+    loading: "Loading…",
+    shift: "Setpoint shift",
+    shift_hint: "Shifts the setpoint by −9 to +9 °C within the time window (0 = off).",
+    shift_value: "Shift",
+    from: "From",
+    to: "To",
+    reload: "Reload",
+    duration: "Duration",
+    ovr_hint: "Temporary mode with its own fan intensity (1–90 min).",
+    ovr_level4: "OVR intensity = level 4 (registers 1106/1110).",
+    bad_value: "Invalid value",
+    schedule_enabled: "Schedule control",
+    sync: "Sync with HA",
+    drift: "Drift from HA",
+    card_version: "Card version",
+    sync_started: "Sync started",
+    data_missing: "Block sensors missing (komfovent_block_1000/1100/1200) – update the HA configuration.",
   },
 };
 
@@ -149,6 +240,11 @@ const C = {
   neutral: "var(--divider-color, #888)",
 };
 const LEVEL_COLORS = ["#607d8b", "#4dd0e1", "#03a9f4", "#ff9800"];
+const MODE_ICONS = ["", "mdi:home-export-outline", "mdi:home-outline", "mdi:fan-plus"];
+const ALARM_NAMES = {
+  3: "Rotor stop", 4: "Heater overheating", 9: "Supply sensor B1 fault", 19: "Air temp too low",
+  20: "Air temp too high", 27: "Water temp low", 28: "Frost possibility",
+};
 
 /** Air temperature on the blue → red scale (10–30 °C). */
 function airColor(t) {
@@ -182,7 +278,7 @@ const minutes = (v) => (v >> 8) * 60 + (v & 255);
 class KomfoventCard extends HTMLElement {
   setConfig(config) {
     this._config = {
-      show_controls: true,
+      show_controls: true, // false hides the whole panel next to the schema
       show_schedule: true,
       modbus_hub: "komfovent_c4",
       modbus_slave: 20,
@@ -192,6 +288,9 @@ class KomfoventCard extends HTMLElement {
     this._sig = "";
     this._built = false;
     this._day = undefined;
+    this._tab = this._tab || "home";
+    this._intLevel = undefined;
+    this._fnFilled = false;
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" });
       this.shadowRoot.addEventListener("click", (ev) => this._onClick(ev));
@@ -255,6 +354,47 @@ class KomfoventCard extends HTMLElement {
     ev.detail = { entityId };
     this.dispatchEvent(ev);
   }
+  /** Values of a block sensor (comma separated) as integers, or undefined. */
+  _block(key, n) {
+    const s = this._st(key);
+    if (!s) return undefined;
+    const arr = String(s.state).split(",").map((x) => parseInt(x, 10));
+    return arr.length === n && arr.every((x) => !Number.isNaN(x)) ? arr : undefined;
+  }
+
+  /** Write [manualRegister, value] pairs one by one, report progress, refresh entities. */
+  async _writeRegs(writes, msg, refreshKeys) {
+    const t = this._t;
+    if (!writes.length) {
+      msg.textContent = t.nothing;
+      msg.className = "msg";
+      return true;
+    }
+    msg.textContent = `${t.saving} 0/${writes.length}`;
+    msg.className = "msg";
+    try {
+      for (let i = 0; i < writes.length; i++) {
+        const [reg, value] = writes[i];
+        await this._call("modbus", "write_register", {
+          hub: this._config.modbus_hub,
+          slave: this._config.modbus_slave,
+          address: reg - 1, // Home Assistant addresses are one lower than the manual
+          value: value < 0 ? value + 65536 : value, // signed values as two's complement
+        });
+        msg.textContent = `${t.saving} ${i + 1}/${writes.length}`;
+      }
+      const ids = refreshKeys.map((k) => this._e[k]).filter(Boolean);
+      if (ids.length) await this._call("homeassistant", "update_entity", { entity_id: ids });
+      msg.textContent = `${t.saved} (${writes.length})`;
+      msg.className = "msg ok";
+      return true;
+    } catch (err) {
+      msg.textContent = `${t.error}: ${err?.message || err}`;
+      msg.className = "msg err";
+      return false;
+    }
+  }
+
   _schedule() {
     const parse = (key, n) => {
       const s = this._st(key);
@@ -286,11 +426,54 @@ class KomfoventCard extends HTMLElement {
         break;
       }
       case "level":
+        this.shadowRoot.querySelectorAll("#modes .mbtn").forEach((b) => b.classList.toggle("sel", b === el));
+        pending();
+        this._call("select", "select_option", { entity_id: this._e.level, option: v });
+        break;
       case "season":
       case "mode": {
         el.parentElement.querySelectorAll("button").forEach((b) => b.classList.toggle("sel", b === el));
         pending();
         this._call("select", "select_option", { entity_id: this._e[a], option: v });
+        break;
+      }
+      case "tab":
+        this._setTab(v);
+        break;
+      case "int-open":
+        this._openIntensity(this._intLevel === +v ? undefined : +v);
+        break;
+      case "int-close":
+        this._openIntensity(undefined);
+        break;
+      case "int-save":
+        this._saveIntensity();
+        break;
+      case "shift-save":
+        this._saveShift();
+        break;
+      case "ovr-save":
+        this._saveOvr();
+        break;
+      case "fn-reload":
+        this._fillFunctions();
+        break;
+      case "history":
+        this._loadHistory();
+        break;
+      case "sync": {
+        pending();
+        const msg = this._q("#st-msg");
+        this._call("script", "turn_on", { entity_id: this._e.sync_script }).then(
+          () => {
+            msg.textContent = this._t.sync_started;
+            msg.className = "msg ok";
+          },
+          (err) => {
+            msg.textContent = `${this._t.error}: ${err?.message || err}`;
+            msg.className = "msg err";
+          }
+        );
         break;
       }
       case "sp":
@@ -381,32 +564,142 @@ class KomfoventCard extends HTMLElement {
         if (sch.levels[d * 3 + p] !== l) writes.push([1342 + d * 3 + p, l]);
       });
     }
-    if (!writes.length) {
-      msg.textContent = t.nothing;
-      msg.className = "msg";
+    await this._writeRegs(writes, msg, ["schedule_times", "schedule_levels"]);
+  }
+
+  // ── C4.1 panel: tabs, intensity, functions, history ──────────────────────
+  _setTab(tab) {
+    this._tab = tab;
+    this.shadowRoot.querySelectorAll(".tab").forEach((b) => b.classList.toggle("sel", b.dataset.value === tab));
+    this.shadowRoot.querySelectorAll(".pane").forEach((p) => (p.hidden = p.dataset.pane !== tab));
+    if (tab === "functions") this._fillFunctions();
+  }
+
+  _openIntensity(level) {
+    this._intLevel = level;
+    const ed = this._q("#int-ed");
+    this.shadowRoot.querySelectorAll("#modes .gear").forEach((b) => b.classList.toggle("sel", +b.dataset.value === level));
+    if (level === undefined) {
+      ed.hidden = true;
       return;
     }
-    msg.textContent = `${t.saving} 0/${writes.length}`;
-    msg.className = "msg";
-    try {
-      for (let i = 0; i < writes.length; i++) {
-        const [reg, value] = writes[i];
-        await this._call("modbus", "write_register", {
-          hub: this._config.modbus_hub,
-          slave: this._config.modbus_slave,
-          address: reg - 1, // Home Assistant addresses are one lower than the manual
-          value,
-        });
-        msg.textContent = `${t.saving} ${i + 1}/${writes.length}`;
-      }
-      await this._call("homeassistant", "update_entity", {
-        entity_id: [this._e.schedule_times, this._e.schedule_levels],
-      });
-      msg.textContent = `${t.saved} (${writes.length})`;
-      msg.className = "msg ok";
-    } catch (err) {
-      msg.textContent = `${t.error}: ${err?.message || err}`;
+    const b = this._block("block_1100", 17);
+    this._q("#int-title").textContent = `${this._t.flows} – ${this._t.modes[level]} (${this._t.level} ${level})`;
+    this._q("#int-s").value = b ? b[2 + level] : "";
+    this._q("#int-e").value = b ? b[6 + level] : "";
+    this._q("#int-msg").textContent = "";
+    ed.hidden = false;
+  }
+
+  _readPct(id) {
+    const v = parseInt(this._q(id).value, 10);
+    return v >= 20 && v <= 100 ? v : undefined;
+  }
+
+  async _saveIntensity() {
+    const l = this._intLevel;
+    const b = this._block("block_1100", 17);
+    const msg = this._q("#int-msg");
+    const s = this._readPct("#int-s");
+    const e = this._readPct("#int-e");
+    if (!l || !b || s === undefined || e === undefined) {
+      msg.textContent = `${this._t.bad_value} (20–100 %)`;
       msg.className = "msg err";
+      return;
+    }
+    const writes = [];
+    if (b[2 + l] !== s) writes.push([1102 + l, s]); // intake level l: 1103..1105
+    if (b[6 + l] !== e) writes.push([1106 + l, e]); // exhaust level l: 1107..1109
+    await this._writeRegs(writes, msg, ["block_1100"]);
+  }
+
+  _fillFunctions() {
+    const b2 = this._block("block_1200", 6);
+    const b1 = this._block("block_1100", 17);
+    if (b2) {
+      this._q("#sh-v").value = (b2[2] / 10).toFixed(1);
+      this._q("#sh-s").value = hhmm(b2[3]);
+      this._q("#sh-e").value = hhmm(b2[4]);
+    }
+    if (b1) {
+      this._q("#ov-t").value = b1[12];
+      this._q("#ov-s").value = b1[6];
+      this._q("#ov-e").value = b1[10];
+    }
+    this._fnFilled = !!(b1 && b2);
+  }
+
+  async _saveShift() {
+    const b2 = this._block("block_1200", 6);
+    const msg = this._q("#sh-msg");
+    const v = Math.round(parseFloat(this._q("#sh-v").value) * 10);
+    const s = parseTime(this._q("#sh-s").value);
+    const e = parseTime(this._q("#sh-e").value);
+    if (!b2 || Number.isNaN(v) || v < -90 || v > 90 || s === undefined || e === undefined) {
+      msg.textContent = `${this._t.bad_value} (−9…+9 °C, HH:MM)`;
+      msg.className = "msg err";
+      return;
+    }
+    const writes = [];
+    if (b2[2] !== v) writes.push([1202, v]);
+    if (b2[3] !== s) writes.push([1203, s]);
+    if (b2[4] !== e) writes.push([1204, e]);
+    await this._writeRegs(writes, msg, ["block_1200"]);
+  }
+
+  async _saveOvr() {
+    const b1 = this._block("block_1100", 17);
+    const msg = this._q("#ov-msg");
+    const tm = parseInt(this._q("#ov-t").value, 10);
+    const s = this._readPct("#ov-s");
+    const e = this._readPct("#ov-e");
+    if (!b1 || !(tm >= 1 && tm <= 90) || s === undefined || e === undefined) {
+      msg.textContent = `${this._t.bad_value} (1–90 min, 20–100 %)`;
+      msg.className = "msg err";
+      return;
+    }
+    const writes = [];
+    if (b1[12] !== tm) writes.push([1112, tm]);
+    if (b1[6] !== s) writes.push([1106, s]);
+    if (b1[10] !== e) writes.push([1110, e]);
+    await this._writeRegs(writes, msg, ["block_1100"]);
+  }
+
+  async _loadHistory() {
+    const t = this._t;
+    const out = this._q("#ov-hist");
+    const id = this._e.alarm_code;
+    out.textContent = t.loading;
+    try {
+      const res = await this._hass.callWS({
+        type: "history/history_during_period",
+        start_time: new Date(Date.now() - 30 * 864e5).toISOString(),
+        entity_ids: [id],
+        minimal_response: true,
+        no_attributes: true,
+        significant_changes_only: false,
+      });
+      const rows = (res[id] || [])
+        .map((x) => ({
+          code: parseInt(x.s ?? x.state, 10),
+          ts: x.lu ?? x.lc ? (x.lu ?? x.lc) * 1000 : Date.parse(x.last_changed || x.last_updated),
+        }))
+        .filter((r) => r.code > 0)
+        .reverse()
+        .slice(0, 50);
+      if (!rows.length) {
+        out.textContent = t.no_history;
+        return;
+      }
+      const lang = this._hass.locale?.language || this._hass.language || "sk";
+      out.innerHTML = rows
+        .map(
+          (r) => `<div class="hrow"><span>${new Date(r.ts).toLocaleString(lang, { dateStyle: "short", timeStyle: "short" })}</span>
+            <b>${r.code}</b><span>${ALARM_NAMES[r.code] || t.alarm_word}</span></div>`
+        )
+        .join("");
+    } catch (err) {
+      out.textContent = `${t.error}: ${err?.message || err}`;
     }
   }
 
@@ -414,12 +707,6 @@ class KomfoventCard extends HTMLElement {
   _build() {
     const t = this._t;
     const cfg = this._config;
-    const seg = (id, action, items) =>
-      `<div class="seg" id="${id}">${items
-        .map(([v, label]) => `<button data-action="${action}" data-value="${v}">${label}</button>`)
-        .join("")}</div>`;
-    const levelOpts = [0, 1, 2, 3].map((l) => `<option value="${l}">${l === 0 ? t.off : `${t.level} ${l}`}</option>`).join("");
-
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
       <ha-card><div class="wrap">
@@ -433,82 +720,159 @@ class KomfoventCard extends HTMLElement {
         </div>
         <div class="body">
           <div class="schema-wrap">${this._svgSkeleton(t)}</div>
-          ${
-            cfg.show_controls || cfg.show_schedule
-              ? `<div class="side">
-            ${
-              cfg.show_controls
-                ? `<div class="controls">
-              <div class="crow">
-                <button class="tg" id="b-power" data-action="power"><span class="ico">⏻</span><span class="txt"></span></button>
-                <button class="tg" id="b-boost" data-action="boost"><span class="ico">🚀</span><span class="txt"></span></button>
-                ${seg("seg-mode", "mode", [["Manual", t.manual], ["Auto", t.auto]])}
-              </div>
-              <div class="crow">
-                <span class="lbl">${t.ventilation}</span>
-                ${seg("seg-level", "level", [["Level 1", "1"], ["Level 2", "2"], ["Level 3", "3"]])}
-                <span class="lbl">${t.temperature}</span>
-                <div class="stepper">
-                  <button data-action="sp" data-value="-0.5">−</button>
-                  <span id="sp-value" data-info="setpoint"></span>
-                  <button data-action="sp" data-value="0.5">+</button>
-                </div>
-              </div>
-              <div class="crow">
-                <span class="lbl">${t.season}</span>
-                ${seg("seg-season", "season", [["Summer", "☀ " + t.summer], ["Winter", "❄ " + t.winter]])}
-              </div>
-            </div>`
-                : ""
-            }
-            ${
-              cfg.show_schedule
-                ? `<div class="sched">
-              <div class="sched-head"><span class="sub">${t.schedule}</span><span class="hint">${t.schedule_hint}</span></div>
-              <div class="missing" id="sched-missing" hidden>${t.schedule_missing}</div>
-              <div class="sgrid" id="sgrid">
-                <span></span>
-                <div class="scale">${[0, 3, 6, 9, 12, 15, 18, 21, 24]
-                  .map((h) => `<span style="left:${(h / 24) * 100}%">${h}</span>`)
-                  .join("")}</div>
-                ${t.days
-                  .map(
-                    (d, i) =>
-                      `<button class="day" data-action="day" data-value="${i}">${d}</button>
-                       <div class="bar" id="bar${i}" data-action="day" data-value="${i}"></div>`
-                  )
-                  .join("")}
-              </div>
-              <div class="legend">${[1, 2, 3]
-                .map((l) => `<span><i style="background:${LEVEL_COLORS[l]}"></i>${t.level} ${l}</span>`)
-                .join("")}<span><i style="background:${LEVEL_COLORS[0]}"></i>${t.off}</span></div>
-              <div class="editor" id="editor" hidden>
-                <div class="ed-title" id="ed-title"></div>
-                ${[0, 1, 2]
-                  .map(
-                    (p) => `<div class="ed-row"><span class="lbl">${t.period} ${p + 1}</span>
-                    <input id="s${p}" class="tm" inputmode="numeric" maxlength="5"> –
-                    <input id="e${p}" class="tm" inputmode="numeric" maxlength="5">
-                    <select id="l${p}">${levelOpts}</select></div>`
-                  )
-                  .join("")}
-                <div class="ed-btns">
-                  <button class="primary" data-action="sched-save">${t.save}</button>
-                  <button data-action="sched-weekdays">${t.copy_weekdays}</button>
-                  <button data-action="sched-all">${t.copy_all}</button>
-                  <button data-action="sched-close">${t.close}</button>
-                </div>
-                <div class="msg" id="ed-msg"></div>
-              </div>
-            </div>`
-                : ""
-            }
-          </div>`
-              : ""
-          }
+          ${cfg.show_controls ? this._panelHtml(t) : ""}
         </div>
       </div></ha-card>`;
     this._built = true;
+    if (this._config.show_controls) this._setTab(this._tab);
+  }
+
+  _panelHtml(t) {
+    const cfg = this._config;
+    const seg = (id, action, items) =>
+      `<div class="seg" id="${id}">${items
+        .map(([v, label]) => `<button data-action="${action}" data-value="${v}">${label}</button>`)
+        .join("")}</div>`;
+    const levelOpts = [0, 1, 2, 3].map((l) => `<option value="${l}">${l === 0 ? t.off : `${t.level} ${l}`}</option>`).join("");
+    const num = (id, min, max, step) =>
+      `<input id="${id}" class="num" type="number" min="${min}" max="${max}" step="${step}" inputmode="decimal">`;
+    const tabs = ["home", "overview", ...(cfg.show_schedule ? ["schedule"] : []), "functions", "settings"];
+    const chip = (id, icon, label) =>
+      `<span class="st" id="${id}"><ha-icon icon="${icon}"></ha-icon><span>${label}</span></span>`;
+
+    return `<div class="side">
+      <div class="tabs">${tabs.map((id) => `<button class="tab" data-action="tab" data-value="${id}">${t.tabs[id]}</button>`).join("")}</div>
+      <div class="missing" id="data-missing" hidden>${t.data_missing}</div>
+
+      <div class="pane" data-pane="home">
+        <div class="home-top">
+          <div class="bigtemp" data-info="supply_temp"><span id="h-temp">—</span><small>${t.supply}</small></div>
+          <div class="spbox">
+            <span class="lbl">${t.setpoint}</span>
+            <div class="stepper">
+              <button data-action="sp" data-value="-0.5">−</button>
+              <span id="sp-value" data-info="setpoint"></span>
+              <button data-action="sp" data-value="0.5">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="modes" id="modes">${[1, 2, 3]
+          .map(
+            (l) => `<div class="mode">
+              <button class="mbtn" data-action="level" data-value="Level ${l}">
+                <ha-icon icon="${MODE_ICONS[l]}"></ha-icon><span>${t.modes[l]}</span><small>${t.level} ${l}</small></button>
+              <button class="gear" data-action="int-open" data-value="${l}" title="${t.intensity}">⚙</button></div>`
+          )
+          .join("")}</div>
+        <div class="editor" id="int-ed" hidden>
+          <div class="ed-title" id="int-title"></div>
+          <div class="ed-row"><span class="lbl">${t.supply}</span>${num("int-s", 20, 100, 5)} %
+            <span class="lbl">${t.exhaust}</span>${num("int-e", 20, 100, 5)} %</div>
+          <div class="ed-btns"><button class="primary" data-action="int-save">${t.save}</button>
+            <button data-action="int-close">${t.close}</button></div>
+          <div class="msg" id="int-msg"></div>
+        </div>
+        <div class="crow">
+          <button class="tg" id="b-power" data-action="power"><span class="ico">⏻</span><span class="txt"></span></button>
+          <button class="tg" id="b-boost" data-action="boost"><span class="ico">🚀</span><span class="txt"></span></button>
+          ${seg("seg-mode", "mode", [["Manual", t.manual], ["Auto", t.auto]])}
+        </div>
+        <div class="icons">
+          ${chip("st-fans", "mdi:fan", t.fans)}${chip("st-rec", "mdi:recycle-variant", t.recovery)}
+          ${chip("st-heat", "mdi:radiator", t.heating)}${chip("st-cool", "mdi:snowflake", t.cooling)}
+          ${chip("st-sched", "mdi:calendar-clock", t.sched_on)}${chip("st-ovr", "mdi:rocket-launch", "OVR")}
+          ${chip("st-alarm", "mdi:alert", t.alarm_word)}
+        </div>
+      </div>
+
+      <div class="pane" data-pane="overview" hidden>
+        <div class="alarmbox" id="ov-alarm" data-info="alarm"></div>
+        <div class="sub">${t.details}</div>
+        <div class="kv" id="ov-details"></div>
+        <div class="sub">${t.alarm_history}</div>
+        <div><button data-action="history">${t.load_history}</button></div>
+        <div class="hist" id="ov-hist"></div>
+      </div>
+
+      ${
+        cfg.show_schedule
+          ? `<div class="pane sched" data-pane="schedule" hidden>
+        <div class="sched-head"><span class="sub">${t.schedule}</span><span class="hint">${t.schedule_hint}</span></div>
+        <div class="missing" id="sched-missing" hidden>${t.schedule_missing}</div>
+        <div class="sgrid" id="sgrid">
+          <span></span>
+          <div class="scale">${[0, 3, 6, 9, 12, 15, 18, 21, 24]
+            .map((h) => `<span style="left:${(h / 24) * 100}%">${h}</span>`)
+            .join("")}</div>
+          ${t.days
+            .map(
+              (d, i) =>
+                `<button class="day" data-action="day" data-value="${i}">${d}</button>
+                 <div class="bar" id="bar${i}" data-action="day" data-value="${i}"></div>`
+            )
+            .join("")}
+        </div>
+        <div class="legend">${[1, 2, 3]
+          .map((l) => `<span><i style="background:${LEVEL_COLORS[l]}"></i>${t.modes[l]}</span>`)
+          .join("")}<span><i style="background:${LEVEL_COLORS[0]}"></i>${t.off}</span></div>
+        <div class="editor" id="editor" hidden>
+          <div class="ed-title" id="ed-title"></div>
+          ${[0, 1, 2]
+            .map(
+              (p) => `<div class="ed-row"><span class="lbl">${t.period} ${p + 1}</span>
+              <input id="s${p}" class="tm" inputmode="numeric" maxlength="5"> –
+              <input id="e${p}" class="tm" inputmode="numeric" maxlength="5">
+              <select id="l${p}">${levelOpts}</select></div>`
+            )
+            .join("")}
+          <div class="ed-btns">
+            <button class="primary" data-action="sched-save">${t.save}</button>
+            <button data-action="sched-weekdays">${t.copy_weekdays}</button>
+            <button data-action="sched-all">${t.copy_all}</button>
+            <button data-action="sched-close">${t.close}</button>
+          </div>
+          <div class="msg" id="ed-msg"></div>
+        </div>
+      </div>`
+          : ""
+      }
+
+      <div class="pane" data-pane="functions" hidden>
+        <div class="fbox">
+          <div class="sub">${t.shift}</div>
+          <div class="hint">${t.shift_hint}</div>
+          <div class="ed-row"><span class="lbl">${t.shift_value}</span>${num("sh-v", -9, 9, 0.5)} °C
+            <span class="lbl">${t.from}</span><input id="sh-s" class="tm" inputmode="numeric" maxlength="5">
+            <span class="lbl">${t.to}</span><input id="sh-e" class="tm" inputmode="numeric" maxlength="5"></div>
+          <div class="ed-btns"><button class="primary" data-action="shift-save">${t.save}</button>
+            <button data-action="fn-reload">${t.reload}</button></div>
+          <div class="msg" id="sh-msg"></div>
+        </div>
+        <div class="fbox">
+          <div class="sub">${t.ovr}</div>
+          <div class="hint">${t.ovr_hint}</div>
+          <div class="crow"><button class="tg" id="b-boost2" data-action="boost"><span class="ico">🚀</span><span class="txt"></span></button></div>
+          <div class="ed-row"><span class="lbl">${t.duration}</span>${num("ov-t", 1, 90, 1)} ${t.min}</div>
+          <div class="ed-row"><span class="lbl">${t.supply}</span>${num("ov-s", 20, 100, 5)} %
+            <span class="lbl">${t.exhaust}</span>${num("ov-e", 20, 100, 5)} %</div>
+          <div class="hint">${t.ovr_level4}</div>
+          <div class="ed-btns"><button class="primary" data-action="ovr-save">${t.save}</button></div>
+          <div class="msg" id="ov-msg"></div>
+        </div>
+      </div>
+
+      <div class="pane" data-pane="settings" hidden>
+        <div class="kv">
+          <span>${t.season}</span><span>${seg("seg-season", "season", [["Summer", "☀ " + t.summer], ["Winter", "❄ " + t.winter]])}</span>
+          <span>${t.schedule_enabled}</span><span>${seg("seg-mode2", "mode", [["Manual", t.manual], ["Auto", t.auto]])}</span>
+          <span>${t.unit_time}</span><span><span id="st-time"></span> <button data-action="sync">${t.sync}</button></span>
+          <span>${t.drift}</span><span id="st-drift"></span>
+          <span>Modbus ID</span><span id="st-id"></span>
+          <span>${t.card_version}</span><span>${VERSION}</span>
+        </div>
+        <div class="msg" id="st-msg"></div>
+      </div>
+    </div>`;
   }
 
   _svgSkeleton(t) {
@@ -620,8 +984,10 @@ class KomfoventCard extends HTMLElement {
     pAlarm.textContent = `⚠ ${alarm}`;
 
     this._updateSvg({ t, running, supplyT, setpoint, supplyFan, exhaustFan, rotor, heater, alarm });
-    if (this._config.show_controls) this._updateControls(t, powerOn, boostOn, boostLeft, setpoint);
-    if (this._config.show_schedule) this._updateSchedule();
+    if (this._config.show_controls) {
+      this._updatePanel({ t, powerOn, boostOn, boostLeft, setpoint, supplyT, supplyFan, exhaustFan, rotor, heater, running, alarm, levelCur });
+      if (this._config.show_schedule) this._updateSchedule();
+    }
   }
 
   _updateSvg({ t, running, supplyT, setpoint, supplyFan, exhaustFan, rotor, heater, alarm }) {
@@ -684,23 +1050,90 @@ class KomfoventCard extends HTMLElement {
     chip("#chip-sp", 660, 178, `${t.setpoint} ${this._fmt(setpoint)} °C`);
   }
 
-  _updateControls(t, powerOn, boostOn, boostLeft, setpoint) {
-    const bp = this._q("#b-power");
-    bp.classList.toggle("on", powerOn);
-    bp.querySelector(".txt").textContent = powerOn ? t.power : t.power_off;
-    const bb = this._q("#b-boost");
-    bb.classList.toggle("boost", boostOn);
-    bb.querySelector(".txt").textContent = `${t.boost}${boostOn && boostLeft ? ` ${Math.round(boostLeft)} ${t.min}` : ""}`;
+  _updatePanel({ t, powerOn, boostOn, boostLeft, setpoint, supplyT, supplyFan, exhaustFan, rotor, heater, running, alarm, levelCur }) {
+    const b1000 = this._block("block_1000", 14);
+    const b1100 = this._block("block_1100", 17);
+    const b1200 = this._block("block_1200", 6);
+    this._q("#data-missing").hidden = !!(b1000 && b1100 && b1200);
+    const mode = this._st("mode")?.state;
+    const fmtPct = (v) => (v === undefined ? "—" : `${Math.round(v)} %`);
+
+    // home
+    this._q("#h-temp").textContent = supplyT === undefined ? "—" : `${this._fmt(supplyT)}°`;
+    this._q("#h-temp").style.color = airColor(supplyT);
+    if (this._pendingSetpoint === undefined) this._q("#sp-value").textContent = `${this._fmt(setpoint)} °C`;
+    const level = this._st("level")?.state;
+    this.shadowRoot.querySelectorAll("#modes .mbtn").forEach((b) => b.classList.toggle("sel", b.dataset.value === level));
+    const modes = this._q("#modes");
+    modes.classList.toggle("dim", mode === "Auto");
+    modes.title = mode === "Auto" ? t.auto_hint : "";
+    for (const id of ["#b-power"]) {
+      const bp = this._q(id);
+      bp.classList.toggle("on", powerOn);
+      bp.querySelector(".txt").textContent = powerOn ? t.power : t.power_off;
+    }
+    for (const id of ["#b-boost", "#b-boost2"]) {
+      const bb = this._q(id);
+      bb.classList.toggle("boost", boostOn);
+      bb.querySelector(".txt").textContent = `${id === "#b-boost" ? t.boost : t.ovr}${boostOn && boostLeft ? ` · ${Math.round(boostLeft)} ${t.min}` : ""}`;
+    }
     const mark = (id, state) =>
       this.shadowRoot.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("sel", b.dataset.value === state));
-    const mode = this._st("mode")?.state;
-    mark("seg-level", this._st("level")?.state);
-    mark("seg-season", this._st("season")?.state);
     mark("seg-mode", mode);
-    const lvl = this._q("#seg-level");
-    lvl.classList.toggle("dim", mode === "Auto");
-    lvl.title = mode === "Auto" ? t.auto_hint : "";
-    if (this._pendingSetpoint === undefined) this._q("#sp-value").textContent = `${this._fmt(setpoint)} °C`;
+    mark("seg-mode2", mode);
+    mark("seg-season", this._st("season")?.state);
+    const waterHeat = this._num("water_heating") ?? 0;
+    const waterCool = this._num("water_cooling") ?? 0;
+    const on = (id, v) => this._q(id).classList.toggle("on", !!v);
+    on("#st-fans", running);
+    on("#st-rec", running && rotor > 0);
+    on("#st-heat", heater > 0 || waterHeat > 0);
+    on("#st-cool", waterCool > 0);
+    on("#st-sched", mode === "Auto");
+    on("#st-ovr", boostOn);
+    this._q("#st-alarm").classList.toggle("alarm", !!alarm);
+
+    // overview
+    const code = this._num("alarm_code");
+    const warn = b1000 ? b1000[7] : undefined;
+    const ab = this._q("#ov-alarm");
+    ab.classList.toggle("bad", !!alarm);
+    ab.innerHTML = alarm
+      ? `<b>⚠ ${alarm}</b> <span class="hint">(${t.alarm_word} ${code ?? "?"})</span>`
+      : `<b>✓ ${t.no_alarm}</b>`;
+    if (warn) {
+      ab.innerHTML += `<div class="hint">${t.warnings}: 0x${warn.toString(16).toUpperCase().padStart(4, "0")}${
+        warn & 0x2000 ? ` – ${t.service_warning}` : ""
+      }</div>`;
+    }
+    const waterT = this._num("water_temp");
+    const rows = [
+      [t.supply_air, supplyT === undefined ? "—" : `${this._fmt(supplyT)} °C`, "supply_temp"],
+      [t.setpoint, `${this._fmt(setpoint)} °C`, "setpoint"],
+      ...(waterT !== undefined ? [[t.water_temp, `${this._fmt(waterT)} °C`, "water_temp"]] : []),
+      [`${t.supply} – ${t.fans.toLowerCase()}`, fmtPct(supplyFan), "supply_fan"],
+      [`${t.exhaust} – ${t.fans.toLowerCase()}`, fmtPct(exhaustFan), "exhaust_fan"],
+      [t.rotor, fmtPct(rotor), "recuperator"],
+      [t.heater, fmtPct(heater), "heater"],
+      [t.water_heating, fmtPct(this._num("water_heating")), "water_heating"],
+      [t.water_cooling, fmtPct(this._num("water_cooling")), "water_cooling"],
+      [t.current_level, levelCur === undefined ? "—" : levelCur === 0 ? t.standby : levelCur === 4 ? "OVR" : `${levelCur}`, "level_current"],
+      [t.unit_time, `${this._st("clock")?.state ?? "—"} · ${this._st("date")?.state ?? ""}`, "clock"],
+    ];
+    this._q("#ov-details").innerHTML = rows
+      .map(([k, v, info]) => `<span>${k}</span><span class="val" data-info="${info}">${v}</span>`)
+      .join("");
+
+    // functions – fill the inputs once the data is there (not while the user edits)
+    if (this._tab === "functions" && !this._fnFilled) this._fillFunctions();
+
+    // settings
+    this._q("#st-time").textContent = `${this._st("clock")?.state ?? "—"} · ${this._st("date")?.state ?? ""}`;
+    const drift = this._num("drift");
+    this._q("#st-drift").textContent = drift === undefined ? "—" : `${drift > 0 ? "+" : ""}${drift} ${t.min}`;
+    this._q("#st-id").textContent = b1000 ? b1000[6] : "—";
+    if (this._intLevel !== undefined && !this._q("#int-s").value && b1100) this._openIntensity(this._intLevel);
+    void b1200;
   }
 
   _updateSchedule() {
@@ -731,7 +1164,7 @@ class KomfoventCard extends HTMLElement {
 const STYLE = `
   :host { display: block; }
   ha-card { display: block; padding: 10px 12px 12px; overflow: hidden; }
-  .wrap { container-type: inline-size; }
+  .wrap { container-type: inline-size; color: var(--primary-text-color, #e1e1e1); }
   .header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 0 2px 4px; }
   .title { font-size: var(--ha-font-size-l, 17px); font-weight: var(--ha-font-weight-medium, 500); color: var(--primary-text-color, #e1e1e1); }
   .pills { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -832,6 +1265,45 @@ const STYLE = `
   .msg { font-size: 11px; color: var(--secondary-text-color, #9b9b9b); min-height: 14px; }
   .msg.ok { color: #4caf50; }
   .msg.err { color: var(--error-color, #db4437); }
+
+  /* C4.1-style panel */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--divider-color, #333); flex-wrap: wrap; }
+  .tab { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; color: var(--secondary-text-color, #9b9b9b); }
+  .tab.sel { color: var(--primary-text-color, #e1e1e1); border-bottom-color: var(--primary-color, #03a9f4); }
+  .pane { display: grid; gap: 10px; align-content: start; }
+  .pane.sched { border-top: none; padding-top: 0; }
+  .home-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .bigtemp { display: flex; align-items: baseline; gap: 8px; cursor: pointer; }
+  .bigtemp span { font-size: 42px; font-weight: 300; line-height: 1; }
+  .bigtemp small, .mbtn small { color: var(--secondary-text-color, #9b9b9b); font-size: 11px; }
+  .spbox { display: grid; gap: 2px; justify-items: end; }
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mode { position: relative; }
+  .mbtn { width: 100%; display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 10px; }
+  .mbtn ha-icon { --mdc-icon-size: 26px; }
+  .mbtn.sel { background: var(--primary-color, #03a9f4); border-color: var(--primary-color, #03a9f4); color: #fff; }
+  .mbtn.sel small { color: rgba(255,255,255,.8); }
+  .modes.dim .mbtn.sel { opacity: .55; }
+  .gear { position: absolute; top: 3px; right: 3px; border: none; padding: 0 4px; font-size: 13px; color: var(--secondary-text-color, #9b9b9b); }
+  .gear.sel { color: var(--primary-color, #03a9f4); }
+  .mbtn.sel + .gear { color: rgba(255,255,255,.85); }
+  .icons { display: flex; flex-wrap: wrap; gap: 6px; }
+  .st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    border: 1px solid var(--divider-color, #444); color: var(--secondary-text-color, #9b9b9b); opacity: .45; }
+  .st ha-icon { --mdc-icon-size: 15px; }
+  .st.on { opacity: 1; color: #4caf50; border-color: #4caf50; }
+  .st.alarm { opacity: 1; color: #fff; background: var(--error-color, #db4437); border-color: transparent; }
+  .alarmbox { padding: 8px 10px; border-radius: 8px; border: 1px solid #4caf50; color: #4caf50; cursor: pointer; }
+  .alarmbox.bad { border-color: var(--error-color, #db4437); color: var(--error-color, #db4437); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; align-items: center; }
+  .kv > span:nth-child(odd) { color: var(--secondary-text-color, #9b9b9b); }
+  .kv .val { cursor: pointer; }
+  .hist { display: grid; gap: 2px; font-size: 12px; max-height: 180px; overflow: auto; color: var(--secondary-text-color, #9b9b9b); }
+  .hrow { display: grid; grid-template-columns: auto 34px 1fr; gap: 8px; }
+  .hrow b { color: var(--error-color, #db4437); }
+  .fbox { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--divider-color, #333); border-radius: 8px; }
+  input.num { width: 58px; text-align: center; font: inherit; font-size: 13px; color: var(--primary-text-color, #e1e1e1);
+    background: var(--card-background-color, #1c1c1c); border: 1px solid var(--divider-color, #555); border-radius: 6px; padding: 3px 4px; }
 `;
 
 customElements.define("komfovent-card", KomfoventCard);
@@ -839,7 +1311,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "komfovent-card",
   name: "Komfovent",
-  description: "Komfovent C4 ventilation unit – schema, controls and weekly schedule",
+  description: "Komfovent C4 ventilation unit – schema and a C4.1-style control panel",
   preview: true,
 });
 console.info(`%c KOMFOVENT-CARD %c ${VERSION} `, "background:#03a9f4;color:#fff", "background:#333;color:#fff");

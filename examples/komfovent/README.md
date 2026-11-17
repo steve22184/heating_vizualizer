@@ -62,11 +62,15 @@ Connect only **one** gateway to J1 at a time – the panel plus two gateways wou
 `komfovent-card.js` in the repository root is a separate card in the Heating Visualizer style:
 
 - schema of the unit with animated air flow, spinning fans and rotary heat exchanger, heater glow and the supply duct colored by temperature;
-- compact controls for power, boost, ventilation level, setpoint, season and mode;
-- weekly schedule (registers 1300–1362) with an editor for the three periods of each day;
+- next to it a panel modelled on the Komfovent **C4.1** touch panel, with tabs:
+  - **Home** – supply temperature, setpoint, the three modes *Away / Home / Boost* (levels 1–3) with an editor for the supply/extract intensity of each mode (registers 1103–1109), power, OVR boost, manual/auto and status icons;
+  - **Overview** – current alarm and warnings (0x2000 = service time), detailed values, alarm history of the last 30 days from the Home Assistant recorder;
+  - **Schedule** – weekly schedule (registers 1300–1362) with an editor for the three periods of each day;
+  - **Functions** – setpoint shift −9…+9 °C in a time window (1202–1204) and the OVR function: duration (1112) and intensity (1106/1110, level 4);
+  - **Settings** – season, schedule control, unit clock with *Sync with HA*, Modbus ID;
 - side-by-side layout on wide dashboards, stacked on phones; follows the Home Assistant language (English, Slovak).
 
-Installation: copy it to `<config>/www/`, add `/local/komfovent-card.js?v=1.1.1` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
+Installation: copy it to `<config>/www/`, add `/local/komfovent-card.js?v=1.2.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
 
 ## Register reference
 
