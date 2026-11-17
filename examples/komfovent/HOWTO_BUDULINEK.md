@@ -55,6 +55,17 @@ W5500 SPI: CS → D10, MOSI → D11, MISO → D12, SCK → D13, RST → D7 (opti
 
 \* A W5500 module without its own regulator needs 3.3 V.
 
+**Arduino Mega 2560 + Ethernet shield W5100 (tested variant):** the shield simply plugs onto the Mega – SPI goes through the ICSP header, no Ethernet wiring needed. Power the Mega with 5 V on the **5V** pin (DC-DC from J1 pin 3 or a proper 5 V ≥ 1 A supply) and wire the RS485 module to Serial1:
+
+```
+XY-485 VCC / GND ──► Mega 5V / GND
+XY-485 TXD       ──► Mega pin 18 (TX1)   (as labelled on our module – swap if RX stays 0)
+XY-485 RXD       ──► Mega pin 19 (RX1)
+XY-485 A+ / B−   ──► J1 pin 4 / pin 5
+```
+
+The power-on reset fix for the shield (RST → pin 7, see the gateway's *Ethernet_SW_Reset.md*) needs the shield's RESET pin bent out and one ICSP pin on the Mega bent – optional, the tested gateway runs without it on a good supply.
+
 **Check before connecting** (all against pin 6):
 
 - pin 3 ≈ +20 V,
@@ -166,7 +177,7 @@ The schema shows outdoor air → filter → rotary heat exchanger → supply fan
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Web UI not reachable | Wrong IP, W5500 not initialised after power-up | Try 192.168.1.254; wire RST → D7 (see the gateway's *Ethernet Power On Reset Issue*) |
+| Web UI not reachable | Wrong IP, W5x00 not initialised after power-up | Try 192.168.1.254; wire RST → D7 (see the gateway's *Ethernet Power On Reset Issue*) |
 | Web UI unreachable after moving / re-powering | Weak power supply – the W5x00 does not start or drops off | Proper 5 V ≥ 1 A supply (or DC-DC from J1 pin 3), then the RST→pin 7 fix |
 | Upload fails | RS485 module on D0/D1, wrong bootloader | Disconnect RS485 and J1 during upload; try *Old Bootloader* |
 | RTU Data TX grows, RX stays 0 (module RXD LED blinks) | TXD/RXD swapped, or `mySerial` does not match the pins | Swap the wires on TX1/RX1 (XY-485: module TXD → pin 18, RXD → pin 19 worked); check `#define mySerial Serial1` |

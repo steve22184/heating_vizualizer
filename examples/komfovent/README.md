@@ -42,8 +42,8 @@ Connect only **one** gateway to J1 at a time – the panel plus two gateways wou
 
 | | Waveshare RS485 TO POE ETH (B) | budulinek Arduino gateway |
 | --- | --- | --- |
-| Status with this unit | tested, 99.7 % successful reads with the panel connected | tested (Arduino Mega 2560 + W5100 + XY-485), 99.7 % successful reads |
-| Hardware | ready-made DIN-rail device | Arduino Nano/Uno/Mega + W5500 + auto-direction RS485 module, self-built |
+| Status with this unit | tested, 99.7 % successful reads with the panel connected | tested (Arduino Mega 2560 + Ethernet shield W5100 + XY-485), 99.7 % successful reads |
+| Hardware | ready-made DIN-rail device | Arduino Nano/Uno/Mega + W5100/W5500 (module or shield) + auto-direction RS485 module, self-built |
 | Software | closed firmware, Windows tool VirCom or web page | open source, web UI, defaults in `advanced_settings.h` |
 | Power | PoE or 6–36 V DC (also directly from J1 pin 3) | regulated 5 V – DC-DC converter from J1 pin 3 |
 | RS485 isolation | yes | no (fine when powered from the same unit) |
