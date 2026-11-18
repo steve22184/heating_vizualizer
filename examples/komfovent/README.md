@@ -12,6 +12,7 @@ Home Assistant setup for a Komfovent RECU-300VEB-R-EC-C4 ventilation unit (C4 co
 | [`HOWTO_BUDULINEK.md`](HOWTO_BUDULINEK.md) | Step by step with the open-source **budulinek Arduino gateway**: parts, wiring, firmware, web UI settings, tests, Home Assistant and the card. **Tested** with an Arduino Mega 2560 + W5100 shield + XY-485. |
 | `komfovent_configuration.yaml` | `modbus`, `template`, `script` and `automation` blocks for `configuration.yaml` (comments in Slovak): sensors, switches, writable selects/numbers (template entities calling `modbus.write_register`), weekly schedule, alarm notification and daily clock sync. |
 | `komfovent-card.yaml` | Dashboard card using [`komfovent-card.js`](../../komfovent-card.js). |
+| [`rotary-exchanger/`](rotary-exchanger/) | Archived card variant with a **rotary heat exchanger** (card 1.3.0, element `komfovent-card-rotary`), kept for units with a rotor. |
 | `tools/` | `komfovent_sniffer.py` (passive bus sniffer), `komfovent_test.py` (ID scan and load test), `fake_c4.py` + `C4_registers.json` (C4 simulator over TCP or RTU). |
 
 The examples use **192.168.1.200** for the gateway – replace it with a free address in your LAN.
