@@ -1,0 +1,205 @@
+# ============================================================
+# Komfovent C4 – balíček 1/2: modbus, skript, automatizácie
+# Súbor patrí do /config/packages/ (pozri packages/README.md).
+# Rovnaký obsah ako ČASŤ 1 v ../komfovent_configuration.yaml.
+# Slave ID 20, čítanie po blokoch registrov (šetrí panel).
+# ============================================================
+modbus:
+  - name: komfovent_c4
+    type: tcp
+    host: 192.168.1.200          # IP adresa tvojej brány (Waveshare alebo budulinek)
+    port: 502
+    timeout: 5
+    delay: 1
+    message_wait_milliseconds: 100
+
+    switches:
+      - name: "Komfovent Power"
+        unique_id: komfovent_power
+        slave: 20
+        address: 999            # doc 1000  1=Start 0=Stop
+        write_type: holding
+        command_on: 1
+        command_off: 0
+        scan_interval: 60       # overenie stavu; rýchla zmena je v bloku 1000
+        verify:
+          input_type: holding
+          address: 999
+          state_on: 1
+          state_off: 0
+
+      - name: "Komfovent OVR Boost"
+        unique_id: komfovent_ovr
+        slave: 20
+        address: 1110           # doc 1111
+        write_type: holding
+        command_on: 1
+        command_off: 0
+        scan_interval: 60
+        verify:
+          input_type: holding
+          address: 1110
+          state_on: 1
+          state_off: 0
+
+    sensors:
+      # --- blok 1000..1013 (14 registrov) -------------------------------
+      # idx: 0 Start/Stop, 1 sezóna, 2 čas (h*256+m), 3 deň v týždni 1..7,
+      #      4 mesiac*256+deň, 5 rok, 6 Modbus adresa, 7 varovania,
+      #      8 stop príznaky, 9 stop kód, 10 rekuperátor %, 11 el. ohrev %,
+      #      12 vodný ohrev %, 13 vodné chladenie %
+      - name: "Komfovent Block 1000"
+        unique_id: komfovent_block_1000
+        slave: 20
+        address: 999
+        input_type: holding
+        data_type: custom
+        structure: ">14H"
+        count: 14
+        precision: 0            # bez desatinných miest (stav max. 255 znakov)
+        scan_interval: 30
+
+      # --- blok 1100..1116 (17 registrov) -------------------------------
+      # idx: 0 nastavený stupeň 1..3, 1 aktuálny stupeň 0..4, 2 režim (0 man, 1 auto),
+      #      3..6 prívod stupeň 1..4 %, 7..10 odvod stupeň 1..4 %,
+      #      11 OVR zap., 12 OVR čas min, 13 OVR zostáva min,
+      #      14 ventilátory bežia, 15 prívodný vent. %, 16 odvodný vent. %
+      - name: "Komfovent Block 1100"
+        unique_id: komfovent_block_1100
+        slave: 20
+        address: 1099
+        input_type: holding
+        data_type: custom
+        structure: ">17H"
+        count: 17
+        precision: 0
+        scan_interval: 20
+
+      # --- blok 1200..1205 (6 registrov, so znamienkom) ------------------
+      # idx: 0 teplota prívodu x10, 1 žiadaná x10, 2 korekcia x10,
+      #      3 korekcia začiatok, 4 korekcia koniec, 5 teplota vody x10 (32767 = nezapojené)
+      - name: "Komfovent Block 1200"
+        unique_id: komfovent_block_1200
+        slave: 20
+        address: 1199
+        input_type: holding
+        data_type: custom
+        structure: ">6h"
+        count: 6
+        precision: 0
+        scan_interval: 30
+
+      # --- týždenný program (doc 1300..1362) ----------------------------
+      # Časy: hodina*256 + minúta (06:30 = 0x061E = 1566, 24:00 = 0x1800).
+      # Poradie: Po1 začiatok, Po1 koniec, Po2 z., Po2 k., Po3 z., Po3 k., Ut1 z., ... Ne3 k.
+      - name: "Komfovent Schedule Times"
+        unique_id: komfovent_schedule_times
+        slave: 20
+        address: 1299           # doc 1300..1341 (42 registrov)
+        input_type: holding
+        data_type: custom
+        structure: ">42H"
+        count: 42
+        precision: 0
+        scan_interval: 300
+
+      # Stupeň vetrania pre každý úsek: Po1, Po2, Po3, Ut1, ... Ne3 (0 = vyp, 1..3)
+      - name: "Komfovent Schedule Levels"
+        unique_id: komfovent_schedule_levels
+        slave: 20
+        address: 1341           # doc 1342..1362 (21 registrov)
+        input_type: holding
+        data_type: custom
+        structure: ">21H"
+        count: 21
+        precision: 0
+        scan_interval: 300
+
+# ----------------------------------------------------------
+# Synchronizácia hodín jednotky s časom HA
+# (registre doc 1002..1005 -> wire 1001..1004, zápis FC06)
+# ----------------------------------------------------------
+script:
+  komfovent_sync_clock:
+    alias: "Komfovent: Synchronizovať hodiny"
+    icon: mdi:clock-check-outline
+    mode: single
+    sequence:
+      - variables:
+          hh: "{{ now().hour }}"
+          mm: "{{ now().minute }}"
+          dow: "{{ now().isoweekday() }}"
+          mon: "{{ now().month }}"
+          day: "{{ now().day }}"
+          yr: "{{ now().year }}"
+      - action: modbus.write_register
+        data:
+          hub: komfovent_c4
+          slave: 20
+          address: 1001         # doc 1002 čas
+          value: "{{ hh * 256 + mm }}"
+      - action: modbus.write_register
+        data:
+          hub: komfovent_c4
+          slave: 20
+          address: 1002         # doc 1003 deň v týždni
+          value: "{{ dow }}"
+      - action: modbus.write_register
+        data:
+          hub: komfovent_c4
+          slave: 20
+          address: 1003         # doc 1004 mesiac/deň
+          value: "{{ mon * 256 + day }}"
+      - action: modbus.write_register
+        data:
+          hub: komfovent_c4
+          slave: 20
+          address: 1004         # doc 1005 rok
+          value: "{{ yr }}"
+      - delay: "00:00:02"
+      - action: homeassistant.update_entity
+        data:
+          entity_id: sensor.komfovent_block_1000
+
+automation:
+  - alias: "Komfovent: Alarm notification"
+    id: komfovent_alarm_notify
+    triggers:
+      - trigger: template
+        value_template: "{{ states('sensor.komfovent_alarm_stop_code') | int(0) > 0 }}"
+    actions:
+      - action: persistent_notification.create
+        data:
+          title: "Komfovent — ALARM"
+          message: >
+            Alarm: {{ states('sensor.komfovent_alarm_status') }}
+            (code {{ states('sensor.komfovent_alarm_stop_code') }})
+          notification_id: komfovent_alarm
+
+  - alias: "Komfovent: Alarm cleared"
+    id: komfovent_alarm_cleared
+    triggers:
+      - trigger: template
+        value_template: "{{ states('sensor.komfovent_alarm_stop_code') | int(0) == 0 }}"
+    actions:
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: komfovent_alarm
+
+  - alias: "Komfovent: Synchronizácia hodín denne"
+    id: komfovent_clock_sync_daily
+    description: "Každý deň o 03:17 zapíše čas a dátum z HA do jednotky; aj pri odchýlke > 2 min."
+    triggers:
+      - trigger: time
+        at: "03:17:00"
+      - trigger: numeric_state
+        entity_id: sensor.komfovent_clock_drift
+        above: 2
+        for: "00:10:00"
+      - trigger: numeric_state
+        entity_id: sensor.komfovent_clock_drift
+        below: -2
+        for: "00:10:00"
+    actions:
+      - action: script.komfovent_sync_clock
+

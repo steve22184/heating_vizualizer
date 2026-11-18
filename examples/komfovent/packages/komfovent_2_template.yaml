@@ -1,0 +1,323 @@
+# ============================================================
+# Komfovent C4 – balíček 2/2: template entity (hodnoty z blokov a zápis)
+# Súbor patrí do /config/packages/.
+# Rovnaký obsah ako ČASŤ 2 v ../komfovent_configuration.yaml.
+# PRI PRECHODE ZO STAREJ KONFIGURÁCIE ho pridaj až po odstránení starých
+# entít (postup je v packages/README.md), inak nové entity dostanú príponu _2.
+# ============================================================
+template:
+  # ---------- zapisovateľné entity ----------
+  - select:
+      - name: "Komfovent Season"
+        unique_id: komfovent_season_select
+        options: "{{ ['Summer', 'Winter'] }}"
+        state: >
+          {% set v = states('sensor.komfovent_block_1000').split(',') %}
+          {{ 'Winter' if v | length == 14 and v[1] == '1' else 'Summer' }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+        select_option:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1000     # doc 1001
+              value: "{{ 1 if option == 'Winter' else 0 }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1000
+
+      - name: "Komfovent Ventilation Level"
+        unique_id: komfovent_vent_level_select
+        options: "{{ ['Level 1', 'Level 2', 'Level 3'] }}"
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {% set l = v[0] | int(0) if v | length == 17 else 0 %}
+          {{ 'Level ' ~ l if l in [1, 2, 3] else 'Level 1' }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+        select_option:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1099     # doc 1100
+              value: "{{ option[-1] | int }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1100
+
+      - name: "Komfovent Control Mode"
+        unique_id: komfovent_control_mode_select
+        options: "{{ ['Manual', 'Auto'] }}"
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {{ 'Auto' if v | length == 17 and v[2] == '1' else 'Manual' }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+        select_option:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1101     # doc 1102
+              value: "{{ 1 if option == 'Auto' else 0 }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1100
+
+  - number:
+      - name: "Komfovent Temp Setpoint"
+        unique_id: komfovent_setpoint_number
+        unit_of_measurement: "°C"
+        min: 10
+        max: 30
+        step: 0.5
+        state: >
+          {% set v = states('sensor.komfovent_block_1200').split(',') %}
+          {{ (v[1] | int(200)) / 10 if v | length == 6 else 20 }}
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+        set_value:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1200     # doc 1201
+              value: "{{ (value * 10) | int }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1200
+
+      - name: "Komfovent OVR Time Set"
+        unique_id: komfovent_ovr_time_number
+        unit_of_measurement: "min"
+        min: 1
+        max: 90
+        step: 1
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {{ v[12] | int(30) if v | length == 17 else 30 }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+        set_value:
+          - action: modbus.write_register
+            data:
+              hub: komfovent_c4
+              slave: 20
+              address: 1111     # doc 1112
+              value: "{{ value | int }}"
+          - action: homeassistant.update_entity
+            data:
+              entity_id: sensor.komfovent_block_1100
+
+  # ---------- stav ventilátorov ----------
+  - binary_sensor:
+      - name: "Komfovent Fans Running"
+        unique_id: komfovent_fans_running
+        device_class: running
+        # reg 1114: 1 = ventilátory bežia (spoľahlivejšie ako 1000, ktorý občas hlási 0)
+        state: >
+          {% set v = states('sensor.komfovent_block_1100').split(',') %}
+          {{ v | length == 17 and v[14] == '1' }}
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Power Mismatch"
+        unique_id: komfovent_power_mismatch
+        device_class: problem
+        # zapne sa, keď 1000 hlási Stop, ale ventilátory podľa 1114 bežia (alebo naopak)
+        state: >
+          {% set a = states('sensor.komfovent_block_1000').split(',') %}
+          {% set b = states('sensor.komfovent_block_1100').split(',') %}
+          {{ a | length == 14 and b | length == 17 and (a[0] == '1') != (b[14] == '1') }}
+        delay_on: "00:02:00"
+
+  # ---------- hodnoty z bloku 1200 ----------
+  - sensor:
+      - name: "Komfovent Supply Air Temp"
+        unique_id: komfovent_t_supply_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[0] | int) / 10 }}"
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+
+      - name: "Komfovent Setpoint Temp"
+        unique_id: komfovent_t_setpoint_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[1] | int) / 10 }}"
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+
+      - name: "Komfovent Temp Correction"
+        unique_id: komfovent_t_temp_correction
+        unit_of_measurement: "°C"
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[2] | int) / 10 }}"
+        availability: "{{ states('sensor.komfovent_block_1200').split(',') | length == 6 }}"
+
+      - name: "Komfovent Water Temp"
+        unique_id: komfovent_t_water_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (states('sensor.komfovent_block_1200').split(',')[5] | int) / 10 }}"
+        # 32767 = snímač nie je zapojený
+        availability: >
+          {% set v = states('sensor.komfovent_block_1200').split(',') %}
+          {{ v | length == 6 and v[5] | int(32767) != 32767 }}
+
+  # ---------- hodnoty z bloku 1000 ----------
+      - name: "Komfovent Recuperator Level"
+        unique_id: komfovent_t_recuperator_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[10] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Electric Heater Level"
+        unique_id: komfovent_t_el_heater_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[11] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Water Heating Level"
+        unique_id: komfovent_t_water_heating_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[12] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Water Cooling Level"
+        unique_id: komfovent_t_water_cooling_level
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[13] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Alarm Warnings"
+        unique_id: komfovent_t_alarm_warnings
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[7] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Alarm Stop Flags"
+        unique_id: komfovent_t_alarm_stop_flags
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[8] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Alarm Stop Code"
+        unique_id: komfovent_t_alarm_stop_code
+        state: "{{ states('sensor.komfovent_block_1000').split(',')[9] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Clock"
+        unique_id: komfovent_clock
+        icon: mdi:clock-outline
+        state: >
+          {% set t = states('sensor.komfovent_block_1000').split(',')[2] | int %}
+          {{ '%02d:%02d' | format(t // 256, t % 256) }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Date"
+        unique_id: komfovent_date
+        icon: mdi:calendar
+        state: >
+          {% set v = states('sensor.komfovent_block_1000').split(',') %}
+          {% set d = v[3] | int %}
+          {% set md = v[4] | int %}
+          {% set dni = ['', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'] %}
+          {{ dni[d] if 0 < d < 8 else '?' }} {{ md % 256 }}.{{ md // 256 }}.{{ v[5] }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+      - name: "Komfovent Clock Drift"
+        unique_id: komfovent_clock_drift
+        unit_of_measurement: "min"
+        icon: mdi:clock-alert-outline
+        state: >
+          {% set t = states('sensor.komfovent_block_1000').split(',')[2] | int %}
+          {% set diff = (t // 256) * 60 + (t % 256) - (now().hour * 60 + now().minute) %}
+          {% if diff > 720 %}{% set diff = diff - 1440 %}{% elif diff < -720 %}{% set diff = diff + 1440 %}{% endif %}
+          {{ diff }}
+        availability: "{{ states('sensor.komfovent_block_1000').split(',') | length == 14 }}"
+
+  # ---------- hodnoty z bloku 1100 ----------
+      - name: "Komfovent Ventilation Level Current"
+        unique_id: komfovent_t_vent_level_current
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[1] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Supply Fan Current"
+        unique_id: komfovent_t_supply_fan
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[15] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Current"
+        unique_id: komfovent_t_exhaust_fan
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[16] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent OVR Time Remaining"
+        unique_id: komfovent_t_ovr_remaining
+        unit_of_measurement: "min"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[13] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 1"
+        unique_id: komfovent_t_intake_l1
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[3] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 2"
+        unique_id: komfovent_t_intake_l2
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[4] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 3"
+        unique_id: komfovent_t_intake_l3
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[5] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Intake Fan Level 4"
+        unique_id: komfovent_t_intake_l4
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[6] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 1"
+        unique_id: komfovent_t_exhaust_l1
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[7] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 2"
+        unique_id: komfovent_t_exhaust_l2
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[8] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 3"
+        unique_id: komfovent_t_exhaust_l3
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[9] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+      - name: "Komfovent Exhaust Fan Level 4"
+        unique_id: komfovent_t_exhaust_l4
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.komfovent_block_1100').split(',')[10] | int }}"
+        availability: "{{ states('sensor.komfovent_block_1100').split(',') | length == 17 }}"
+
+  # ---------- text alarmu ----------
+      - name: "Komfovent Alarm Status"
+        unique_id: komfovent_alarm_status
+        icon: >
+          {{ 'mdi:alert-circle' if states('sensor.komfovent_alarm_stop_code') | int(0) > 0 else 'mdi:check-circle' }}
+        state: >
+          {% set code = states('sensor.komfovent_alarm_stop_code') | int(0) %}
+          {% set names = {0: 'OK', 3: 'Rotor stop', 4: 'Heater overheating',
+                          9: 'Supply sensor B1 fault', 19: 'Air temp too low',
+                          20: 'Air temp too high', 27: 'Water temp low',
+                          28: 'Frost possibility'} %}
+          {{ names.get(code, 'Alarm ' ~ code) }}
