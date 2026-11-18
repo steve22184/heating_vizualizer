@@ -143,7 +143,7 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 ## 7. Komfovent Card
 
 1. Copy one card file to `<config>/www/`: [`komfovent-card_sk.js`](../../komfovent-card_sk.js) (Slovak), [`komfovent-card_en.js`](../../komfovent-card_en.js) (English) or [`komfovent-card.js`](../../komfovent-card.js) (follows the Home Assistant language). Load only one of them.
-2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.3.0` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
+2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.4.0` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
 3. Reload the browser with **Ctrl+F5**.
 4. Add the card from [`komfovent-card.yaml`](komfovent-card.yaml):
 
@@ -153,7 +153,7 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 
 The control panel sits centred below the schema; the schema height is limited, so a full-width dashboard fits the screen without a scrollbar.
 
-The schema shows outdoor air → filter → rotary heat exchanger → supply fan → heater → rooms and extract → filter → heat exchanger → exhaust fan → outside. Air flow is animated with the fan speed, fans and the rotor spin with their level, the heater glows while heating and the supply duct takes the color of the supply temperature. Tapping any part opens more info. Below are controls for power, boost (with remaining minutes), ventilation level 1–3 (dimmed in Auto mode, the weekly schedule decides there), setpoint in 0.5 °C steps (sent 0.9 s after the last click), season and mode. Entities named differently go under `entities:`.
+The schema shows outdoor air → filter → counterflow plate heat exchanger (with an on/off summer bypass drawn above it) → supply fan → heater → rooms and extract → filter → heat exchanger → exhaust fan → outside. Air flow is animated with the fan speed, fans spin with their level, the exchanger turns green while it recovers heat and shows the recovery level, the bypass damper turns and the bypass duct carries air when the recovery level drops below 50 % (bypass open), the heater glows while heating and the supply duct takes the color of the supply temperature. Tapping any part opens more info. Below are controls for power, boost (with remaining minutes), ventilation level 1–3 (dimmed in Auto mode, the weekly schedule decides there), setpoint in 0.5 °C steps (sent 0.9 s after the last click), season and mode. Entities named differently go under `entities:`.
 
 **C4.1-style panel** (version 1.2.0+): the controls sit in tabs modelled on the Komfovent C4.1 touch panel – *Home* (temperature, setpoint, modes Away/Home/Boost with ⚙ for the supply/extract intensity of each mode, power, OVR, manual/auto, status icons), *Overview* (alarm, warnings, detailed values, alarm history from the recorder), *Schedule*, *Functions* (setpoint shift, OVR duration and intensity) and *Settings* (season, schedule control, clock sync, Modbus ID). The new functions read the block sensors and write with `modbus.write_register` – no extra Home Assistant entities are needed. Registers 1106/1110 (OVR intensity = level 4) and the time format of 1203/1204 follow the C4 register map and still have to be confirmed on a real unit.
 
@@ -172,7 +172,7 @@ The card builds its DOM once and only updates values afterwards, so buttons reac
 | Values are from the neighbouring register | 1-based manual addresses used directly | Subtract 1 |
 | Log full of `got id=254, Skipping` | Gateway forwards panel traffic | `pymodbus.logging: error` (harmless) |
 | Conflict detection unticks itself | Gateway type *Simple Modbus TCP to RTU* | Use *Multi-host non-storage type* |
-| Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5, or a version in the resource URL (`/local/komfovent-card_sk.js?v=1.3.0`) |
+| Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5, or a version in the resource URL (`/local/komfovent-card_sk.js?v=1.4.0`) |
 | Card shows *Schedule sensors missing* | Schedule sensors not configured | Add *Komfovent Schedule Times / Levels* from the example configuration |
 | Buttons need a long press (card 1.0.0) | The card re-rendered on every state update | Update to `komfovent-card.js` 1.1.0+ and reload with Ctrl+F5 |
 

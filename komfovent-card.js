@@ -20,7 +20,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.3.0";
+const VERSION = "1.4.0";
 // Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
 // komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
 const FORCE_LANG = null;
@@ -67,6 +67,9 @@ const TEXTS = {
     supply_air: "Prívod do miestností",
     extract_air: "Odvod z miestností",
     rotor: "Rekuperátor",
+    bypass: "Bypass",
+    bypass_open: "otvorený",
+    bypass_closed: "zatvorený",
     heater: "Ohrev",
     supply: "Prívod",
     exhaust: "Odvod",
@@ -153,6 +156,9 @@ const TEXTS = {
     supply_air: "Supply to rooms",
     extract_air: "Extract from rooms",
     rotor: "Heat recovery",
+    bypass: "Bypass",
+    bypass_open: "open",
+    bypass_closed: "closed",
     heater: "Heater",
     supply: "Supply",
     exhaust: "Exhaust",
@@ -896,13 +902,28 @@ class KomfoventCard extends HTMLElement {
       `<g id="flow${i}">${FLOW_LAYERS.map(
         (l) => `<path class="flow" style="stroke-dasharray:${l.dash};opacity:${l.opacity}"/>`
       ).join("")}</g>`;
-    const rr = 56; // rotor outer radius (was 70)
+    // counterflow plate exchanger: hexagon centred at (rx, 185)
+    const hx = 70; // half width
+    const hy = 70; // half height
+    const hw = 35; // half width of the flat top/bottom edge
+    const hex = [[rx - hx, 185], [rx - hw, 185 - hy], [rx + hw, 185 - hy], [rx + hx, 185], [rx + hw, 185 + hy], [rx - hw, 185 + hy]];
+    // x where a horizontal line at y crosses the left slanted edges
+    const edgeX = (y) => rx - hw - ((hx - hw) * Math.abs(y - 185 + (y < 185 ? hy : -hy))) / hy;
+    const inL = Math.round(edgeX(yS));
+    const inR = Math.round(2 * rx - edgeX(yS));
     const ducts = [
-      `M 20 ${yS} L ${rx - rr} ${yS}`,
-      `M ${rx + rr} ${yS} L 736 ${yS}`,
-      `M 740 ${yE} L ${rx + rr} ${yE}`,
-      `M ${rx - rr} ${yE} L 16 ${yE}`,
+      `M 20 ${yS} L ${inL} ${yS}`,
+      `M ${inR} ${yS} L 736 ${yS}`,
+      `M 740 ${yE} L ${inR} ${yE}`,
+      `M ${inL} ${yE} L 16 ${yE}`,
     ];
+    const plates = Array.from({ length: 9 }, (_, i) => {
+      const y = 185 - 48 + i * 12;
+      const x0 = edgeX(y) + 6;
+      return `<line x1="${x0.toFixed(1)}" y1="${y}" x2="${(2 * rx - x0).toFixed(1)}" y2="${y}"/>`;
+    }).join("");
+    const byY = 90; // bypass duct height
+    const bypassD = `M ${inL - 22} ${yS} L ${inL - 22} ${byY} L ${inR + 22} ${byY} L ${inR + 22} ${yS}`;
     const blade = (a) => `<path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(${a})"/>`;
     const fan = (id, cx, cy, info) => `<g class="fan" id="${id}" data-info="${info}" transform="translate(${cx},${cy})">
         <circle r="24" class="fan-ring"/><g transform="scale(1.2)"><g class="blades">${blade(0)}${blade(120)}${blade(240)}</g></g>
@@ -911,10 +932,6 @@ class KomfoventCard extends HTMLElement {
         <rect x="-7" y="-16" width="14" height="32" rx="2"/><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"/></g>`;
     const arrow = (id, x, y, dir) =>
       `<path id="${id}" d="M ${x - 7 * dir} ${y - 7} L ${x + 5 * dir} ${y} L ${x - 7 * dir} ${y + 7} Z"/>`;
-    const spokes = Array.from({ length: 12 }, (_, i) => {
-      const a = (i * Math.PI) / 6;
-      return `<line x1="0" y1="0" x2="${(51 * Math.cos(a)).toFixed(1)}" y2="${(51 * Math.sin(a)).toFixed(1)}"/>`;
-    }).join("");
     const chip = (id, info) =>
       `<g class="chip" id="${id}" data-info="${info}"><rect height="22" rx="4"/><text y="15" text-anchor="middle"></text></g>`;
 
@@ -930,7 +947,7 @@ class KomfoventCard extends HTMLElement {
       <line x1="110" y1="40" x2="110" y2="322" class="wall"/>
       <text x="100" y="52" text-anchor="end" class="zone">${t.outside}</text>
       <text x="120" y="52" class="zone">${t.inside}</text>
-      <rect id="unit" x="170" y="70" width="420" height="240" rx="10" class="unit"/>
+      <rect id="unit" x="170" y="56" width="420" height="254" rx="10" class="unit"/>
       ${ducts.map((d, i) => `<path id="duct${i}" d="${d}" class="duct"/>${flows(i)}`).join("")}
       ${arrow("arr0", 150, yS, 1)}${arrow("arr1", 742, yS, 1)}${arrow("arr2", 650, yE, -1)}${arrow("arr3", 13, yE, -1)}
       <text x="22" y="${yS - 14}" class="device-label">${t.outdoor_air}</text>
@@ -938,12 +955,19 @@ class KomfoventCard extends HTMLElement {
       <text x="738" y="${yS - 14}" text-anchor="end" class="device-label">${t.supply_air}</text>
       <text x="738" y="${yE + 24}" text-anchor="end" class="device-label">${t.extract_air}</text>
       ${filter(205, yS)}${filter(555, yE)}
-      <g class="rotor" id="rotor" data-info="recuperator" transform="translate(${rx},185)">
-        <circle r="${rr}" class="rotor-bg"/>
-        <g class="wheel"><circle r="51" class="rotor-rim"/>${spokes}</g>
-        <circle r="22" class="rotor-hub"/>
-        <text y="5" text-anchor="middle" class="device-value" id="rotor-val"></text>
-        <text y="${rr + 18}" text-anchor="middle" class="device-label">${t.rotor}</text>
+      <g class="bypass" id="bypass" data-info="recuperator">
+        <path d="${bypassD}" class="bypass-duct"/>
+        <path d="${bypassD}" class="flow bypass-flow" id="bypass-flow" style="stroke-dasharray:6 14"/>
+        <g transform="translate(${rx},${byY})"><circle r="3" class="damper-pin"/>
+          <line id="damper" x1="0" y1="-11" x2="0" y2="11" class="damper"/></g>
+        <text x="${rx}" y="${byY - 13}" text-anchor="middle" class="device-label" id="bypass-lbl"></text>
+      </g>
+      <g class="hex" id="rotor" data-info="recuperator">
+        <polygon points="${hex.map((p) => p.join(",")).join(" ")}" class="hex-bg"/>
+        <g class="plates">${plates}</g>
+        <rect x="${rx - 24}" y="173" width="48" height="22" rx="4" class="hex-val-bg"/>
+        <text x="${rx}" y="189" text-anchor="middle" class="device-value" id="rotor-val"></text>
+        <text x="${rx}" y="${185 + hy + 16}" text-anchor="middle" class="device-label">${t.rotor}</text>
       </g>
       ${fan("fan-s", 420, yS, "supply_fan")}
       ${fan("fan-e", 212, yE, "exhaust_fan")}
@@ -1038,12 +1062,15 @@ class KomfoventCard extends HTMLElement {
     setFan("#fan-s", supplyFan, `${t.supply} ${Math.round(supplyFan)} %`);
     setFan("#fan-e", exhaustFan, `${t.exhaust} ${Math.round(exhaustFan)} %`);
 
-    const r = this._q("#rotor");
-    r.classList.toggle("on", running && rotor > 0);
-    const rdur = `${Math.min(10, Math.max(1.2, 120 / (rotor || 1))).toFixed(2)}s`;
-    const wheel = r.querySelector(".wheel");
-    if (wheel.style.animationDuration !== rdur) wheel.style.animationDuration = rdur;
+    // plate exchanger + on/off bypass: recovery level below 50 % = bypass open
+    const bypassOpen = running && rotor < 50;
+    this._q("#rotor").classList.toggle("on", running && rotor > 0);
     this._q("#rotor-val").textContent = `${Math.round(rotor)} %`;
+    const bp = this._q("#bypass");
+    bp.classList.toggle("open", bypassOpen);
+    this._q("#damper").setAttribute("transform", bypassOpen ? "rotate(90)" : "");
+    this._q("#bypass-flow").style.display = bypassOpen && supplyFan > 0 ? "" : "none";
+    this._q("#bypass-lbl").textContent = `${t.bypass}: ${bypassOpen ? t.bypass_open : t.bypass_closed}`;
 
     const coil = this._q("#coil");
     coil.style.stroke = heater > 0 ? C.heater : C.heaterOff;
@@ -1129,6 +1156,7 @@ class KomfoventCard extends HTMLElement {
       [`${t.supply} – ${t.fans.toLowerCase()}`, fmtPct(supplyFan), "supply_fan"],
       [`${t.exhaust} – ${t.fans.toLowerCase()}`, fmtPct(exhaustFan), "exhaust_fan"],
       [t.rotor, fmtPct(rotor), "recuperator"],
+      [t.bypass, running && rotor < 50 ? t.bypass_open : t.bypass_closed, "recuperator"],
       [t.heater, fmtPct(heater), "heater"],
       [t.water_heating, fmtPct(this._num("water_heating")), "water_heating"],
       [t.water_cooling, fmtPct(this._num("water_cooling")), "water_cooling"],
@@ -1203,14 +1231,18 @@ const STYLE = `
   .device-value { fill: var(--primary-text-color, #e0e0e0); font-size: 12px; font-weight: 500; pointer-events: none; }
   .filter rect { fill: var(--card-background-color, #1c1c1c); stroke: var(--secondary-text-color, #9b9b9b); stroke-width: 1.5; }
   .filter path { fill: none; stroke: var(--secondary-text-color, #9b9b9b); stroke-width: 1.2; }
-  .rotor, .fan, .heater, .chip { cursor: pointer; }
-  .rotor-bg { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 2; }
-  .rotor-rim { fill: none; stroke: #78909c; stroke-width: 2; }
-  .wheel line { stroke: #78909c; stroke-width: 1.5; }
-  .rotor.on .rotor-rim, .rotor.on .wheel line { stroke: #4caf50; }
-  .rotor-hub { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 1.5; }
+  .hex, .bypass, .fan, .heater, .chip { cursor: pointer; }
+  .hex-bg { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 2; stroke-linejoin: round; }
+  .plates line { stroke: #78909c; stroke-width: 1.2; }
+  .hex.on .hex-bg { stroke: #4caf50; }
+  .hex.on .plates line { stroke: #4caf50; opacity: 0.8; }
+  .hex-val-bg { fill: var(--card-background-color, #1c1c1c); }
+  .bypass-duct { fill: none; stroke: var(--divider-color, #666); stroke-width: 4; stroke-linejoin: round; stroke-dasharray: 2 4; }
+  .bypass.open .bypass-duct { stroke: #8fb3d9; stroke-dasharray: none; }
+  .bypass-flow { stroke-width: 1.6; }
+  .damper { stroke: #ff9800; stroke-width: 3; stroke-linecap: round; transition: transform .4s; }
+  .damper-pin { fill: #ff9800; }
   .wheel, .blades { transform-box: fill-box; transform-origin: center; }
-  .rotor.on .wheel { animation: spin 4s linear infinite; }
   .fan-ring { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 2; }
   .fan.on .fan-ring { stroke: #4caf50; }
   .blades path { fill: #78909c; }
@@ -1222,7 +1254,7 @@ const STYLE = `
   .coil { fill: none; stroke-width: 2; stroke-linejoin: round; }
   .chip rect { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #555); stroke-width: 1; }
   .chip text { fill: var(--primary-text-color, #e1e1e1); font-size: 12px; }
-  @media (prefers-reduced-motion: reduce) { .flow, .wheel, .blades { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .flow, .blades { animation: none !important; } }
 
   .side { display: grid; gap: 12px; align-content: start; }
   button { font: inherit; font-size: 15.5px; color: var(--primary-text-color, #e1e1e1); background: transparent; cursor: pointer;
