@@ -21,7 +21,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.5.1";
+const VERSION = "1.6.0";
 // Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
 // komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
 const FORCE_LANG = "sk";
@@ -728,7 +728,7 @@ class KomfoventCard extends HTMLElement {
   _setTab(tab) {
     this._tab = tab;
     this.shadowRoot.querySelectorAll(".tab").forEach((b) => b.classList.toggle("sel", b.dataset.value === tab));
-    this.shadowRoot.querySelectorAll(".pane").forEach((p) => (p.hidden = p.dataset.pane !== tab));
+    this.shadowRoot.querySelectorAll(".pane").forEach((p) => p.classList.toggle("off", p.dataset.pane !== tab));
     if (tab === "functions") this._fillFunctions();
   }
 
@@ -907,6 +907,7 @@ class KomfoventCard extends HTMLElement {
       <div class="missing" id="data-missing" hidden>${t.data_missing}</div>
       <div class="missing" id="suffix-missing" hidden>${t.fix_suffix}</div>
 
+      <div class="panes">
       <div class="pane" data-pane="home">
         <div class="home-top">
           <div class="bigtemp" data-info="supply_temp"><span id="h-temp">—</span><small>${t.supply}</small></div>
@@ -948,18 +949,22 @@ class KomfoventCard extends HTMLElement {
         </div>
       </div>
 
-      <div class="pane" data-pane="overview" hidden>
-        <div class="alarmbox" id="ov-alarm" data-info="alarm"></div>
-        <div class="sub">${t.details}</div>
-        <div class="kv" id="ov-details"></div>
-        <div class="sub">${t.alarm_history}</div>
-        <div><button data-action="history">${t.load_history}</button></div>
-        <div class="hist" id="ov-hist"></div>
+      <div class="pane two off" data-pane="overview">
+        <div class="col">
+          <div class="alarmbox" id="ov-alarm" data-info="alarm"></div>
+          <div class="sub">${t.details}</div>
+          <div class="kv" id="ov-details"></div>
+        </div>
+        <div class="col">
+          <div class="sub">${t.alarm_history}</div>
+          <div><button data-action="history">${t.load_history}</button></div>
+          <div class="hist" id="ov-hist"></div>
+        </div>
       </div>
 
       ${
         cfg.show_schedule
-          ? `<div class="pane sched" data-pane="schedule" hidden>
+          ? `<div class="pane sched off" data-pane="schedule">
         <div class="sched-head"><span class="sub">${t.schedule}</span><span class="hint">${t.schedule_hint}</span></div>
         <div class="missing" id="sched-missing" hidden>${t.schedule_missing}</div>
         <div class="sgrid" id="sgrid">
@@ -1000,7 +1005,7 @@ class KomfoventCard extends HTMLElement {
           : ""
       }
 
-      <div class="pane" data-pane="functions" hidden>
+      <div class="pane two off" data-pane="functions">
         <div class="fbox">
           <div class="sub">${t.shift}</div>
           <div class="hint">${t.shift_hint}</div>
@@ -1024,7 +1029,8 @@ class KomfoventCard extends HTMLElement {
         </div>
       </div>
 
-      <div class="pane" data-pane="settings" hidden>
+      <div class="pane two off" data-pane="settings">
+        <div class="col">
         <div class="kv">
           <span>${t.season}</span><span>${seg("seg-season", "season", [["Summer", "☀ " + t.summer], ["Winter", "❄ " + t.winter]])}</span>
           <span>${t.schedule_enabled}</span><span>${seg("seg-mode2", "mode", [["Manual", t.manual], ["Auto", t.auto]])}</span>
@@ -1034,6 +1040,7 @@ class KomfoventCard extends HTMLElement {
           <span>${t.card_version}</span><span>${VERSION}</span>
         </div>
         <div class="msg" id="st-msg"></div>
+        </div>
         <div class="fbox">
           <div class="sub">${t.fix_title}</div>
           <div class="hint">${t.fix_hint}</div>
@@ -1043,13 +1050,14 @@ class KomfoventCard extends HTMLElement {
           <div class="msg" id="fx-msg"></div>
         </div>
       </div>
+      </div>
     </div>`;
   }
 
   _svgSkeleton(t) {
     const yS = 120;
     const yE = 250;
-    const rx = 300;
+    const rx = 305;
     const flows = (i) =>
       `<g id="flow${i}">${FLOW_LAYERS.map(
         (l) => `<path class="flow" style="stroke-dasharray:${l.dash};opacity:${l.opacity}"/>`
@@ -1090,7 +1098,7 @@ class KomfoventCard extends HTMLElement {
       `<g class="chip" id="${id}" data-info="${info}"><rect height="22" rx="4"/><text y="15" text-anchor="middle"></text></g>`;
 
     return `
-    <svg viewBox="0 0 760 330" class="schema" role="img" aria-label="Komfovent">
+    <svg viewBox="0 32 760 298" class="schema" role="img" aria-label="Komfovent">
       <defs>
         <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="${C.active}" flood-opacity="0.6"/></filter>
@@ -1125,9 +1133,9 @@ class KomfoventCard extends HTMLElement {
         <text x="${rx}" y="189" text-anchor="middle" class="device-value" id="rotor-val"></text>
         <text x="${rx}" y="${185 + hy + 16}" text-anchor="middle" class="device-label">${t.rotor}</text>
       </g>
-      ${fan("fan-s", 430, yE, "supply_fan")}
+      ${fan("fan-s", 435, yE, "supply_fan")}
       ${fan("fan-e", 212, yE, "exhaust_fan")}
-      <g class="heater" data-info="heater" transform="translate(510,${yE})">
+      <g class="heater" data-info="heater" transform="translate(515,${yE})">
         <rect x="-26" y="-18" width="52" height="36" rx="4" class="heater-box"/>
         <path id="coil" d="M-20 0 L-15 -9 L-8 9 L-1 -9 L6 9 L13 -9 L20 0" class="coil"/>
         <text y="38" text-anchor="middle" class="device-label" id="heater-lbl"></text>
@@ -1381,9 +1389,10 @@ const STYLE = `
   [hidden] { display: none !important; }
 
   .body { display: grid; gap: 12px; }
-  svg.schema { display: block; width: 100%; height: auto; max-height: min(46vh, 460px); font-family: inherit; }
-  .side { width: 100%; max-width: 640px; justify-self: center; }
+  svg.schema { display: block; width: 100%; height: auto; max-height: min(41.5vh, 415px); font-family: inherit; }
+  .side { width: 100%; max-width: 860px; justify-self: center; }
   .ptop { display: flex; justify-content: flex-end; }
+  .ptop .pill { font-size: 14.4px; padding: 2.4px 11px; border-radius: 14px; }
   .wall { stroke: var(--divider-color, #666); stroke-width: 2; stroke-dasharray: 6 6; }
   .zone { fill: var(--secondary-text-color, #9b9b9b); font-size: 11px; letter-spacing: 1px; }
   .unit { fill: var(--card-background-color, #1c1c1c); stroke-width: 2; }
@@ -1406,7 +1415,8 @@ const STYLE = `
   .bypass-flow { stroke-width: 1.6; }
   .damper { stroke: #ff9800; stroke-width: 3; stroke-linecap: round; transition: transform .4s; }
   .damper-pin { fill: #ff9800; }
-  .wheel, .blades { transform-box: fill-box; transform-origin: center; }
+  /* rotate around the hub (0,0 of the blades group), not around the bounding box */
+  .blades { transform-box: view-box; transform-origin: 0 0; }
   .fan-ring { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 2; }
   .fan.on .fan-ring { stroke: #4caf50; }
   .blades path { fill: #78909c; }
@@ -1482,7 +1492,13 @@ const STYLE = `
   .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--divider-color, #333); flex-wrap: wrap; }
   .tab { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 7px 12px; color: var(--secondary-text-color, #9b9b9b); }
   .tab.sel { color: var(--primary-text-color, #e1e1e1); border-bottom-color: var(--primary-color, #03a9f4); }
-  .pane { display: grid; gap: 10px; align-content: start; }
+  /* all panes share one grid cell: the panel keeps the height of the tallest tab, switching tabs never jumps */
+  .panes { display: grid; }
+  .pane { grid-area: 1 / 1; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .pane.off { visibility: hidden; pointer-events: none; }
+  .pane.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 16px; }
+  .pane.two > .col { display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .pane.two > * { align-self: start; }
   .pane.sched { border-top: none; padding-top: 0; }
   .home-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .bigtemp { display: flex; align-items: baseline; gap: 8px; cursor: pointer; }
@@ -1499,10 +1515,10 @@ const STYLE = `
   .gear { position: absolute; top: 3px; right: 3px; border: none; padding: 0 4px; font-size: 14px; color: var(--secondary-text-color, #9b9b9b); }
   .gear.sel { color: var(--primary-color, #03a9f4); }
   .mbtn.sel + .gear { color: rgba(255,255,255,.85); }
-  .icons { display: flex; flex-wrap: wrap; gap: 6px; }
-  .st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  .icons { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 13.2px; padding: 2.4px 9.6px; border-radius: 12px;
     border: 1px solid var(--divider-color, #444); color: var(--secondary-text-color, #9b9b9b); opacity: .45; }
-  .st ha-icon { --mdc-icon-size: 15px; }
+  .st ha-icon { --mdc-icon-size: 18px; }
   .st.on { opacity: 1; color: #4caf50; border-color: #4caf50; }
   .st.alarm { opacity: 1; color: #fff; background: var(--error-color, #db4437); border-color: transparent; }
   .alarmbox { padding: 8px 10px; border-radius: 8px; border: 1px solid #4caf50; color: #4caf50; cursor: pointer; }
