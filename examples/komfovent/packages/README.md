@@ -39,7 +39,9 @@ The template sensors use the same names as the old modbus sensors. While the old
 
 ### Entities ended up with `_2` anyway
 
-Run [`../tools/fix_entity_ids.js`](../tools/fix_entity_ids.js): open Home Assistant in the browser as an admin, press F12 → **Console**, type `allow pasting` if the browser asks for it, paste the whole file and press Enter. It removes the old registry entries and renames the template entities back to the expected IDs (only the 34 Komfovent template entities, matched by `unique_id`). Reload the page with Ctrl+F5.
+**Easiest:** in the Komfovent card open **Settings → Check entities**. It lists the entities with a wrong ID and fixes them with one click (an administrator user is needed). The card also shows a warning on the Home tab when it finds such entities.
+
+Without the card: run [`../tools/fix_entity_ids.js`](../tools/fix_entity_ids.js): open Home Assistant in the browser as an admin, press F12 → **Console**, type `allow pasting` if the browser asks for it, paste the whole file and press Enter. It removes the old registry entries and renames the template entities back to the expected IDs (only the 34 Komfovent template entities, matched by `unique_id`). Reload the page with Ctrl+F5.
 
 To list all Komfovent entities with their state, paste this into Developer tools → Template:
 

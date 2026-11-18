@@ -20,7 +20,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.4.1";
+const VERSION = "1.5.0";
 // Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
 // komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
 const FORCE_LANG = null;
@@ -55,6 +55,45 @@ const DEFAULT_ENTITIES = {
   date: "sensor.komfovent_date",
   drift: "sensor.komfovent_clock_drift",
   sync_script: "script.komfovent_sync_clock",
+};
+
+// unique_id of the template entities (komfovent_2_template.yaml) -> expected entity_id.
+// Used by "Fix entities" in Settings when a migration left entities with a _2 suffix.
+const TEMPLATE_UIDS = {
+  komfovent_season_select: "select.komfovent_season",
+  komfovent_vent_level_select: "select.komfovent_ventilation_level",
+  komfovent_control_mode_select: "select.komfovent_control_mode",
+  komfovent_setpoint_number: "number.komfovent_temp_setpoint",
+  komfovent_ovr_time_number: "number.komfovent_ovr_time_set",
+  komfovent_fans_running: "binary_sensor.komfovent_fans_running",
+  komfovent_power_mismatch: "binary_sensor.komfovent_power_mismatch",
+  komfovent_t_supply_temp: "sensor.komfovent_supply_air_temp",
+  komfovent_t_setpoint_temp: "sensor.komfovent_setpoint_temp",
+  komfovent_t_temp_correction: "sensor.komfovent_temp_correction",
+  komfovent_t_water_temp: "sensor.komfovent_water_temp",
+  komfovent_t_recuperator_level: "sensor.komfovent_recuperator_level",
+  komfovent_t_el_heater_level: "sensor.komfovent_electric_heater_level",
+  komfovent_t_water_heating_level: "sensor.komfovent_water_heating_level",
+  komfovent_t_water_cooling_level: "sensor.komfovent_water_cooling_level",
+  komfovent_t_alarm_warnings: "sensor.komfovent_alarm_warnings",
+  komfovent_t_alarm_stop_flags: "sensor.komfovent_alarm_stop_flags",
+  komfovent_t_alarm_stop_code: "sensor.komfovent_alarm_stop_code",
+  komfovent_clock: "sensor.komfovent_clock",
+  komfovent_date: "sensor.komfovent_date",
+  komfovent_clock_drift: "sensor.komfovent_clock_drift",
+  komfovent_t_vent_level_current: "sensor.komfovent_ventilation_level_current",
+  komfovent_t_supply_fan: "sensor.komfovent_supply_fan_current",
+  komfovent_t_exhaust_fan: "sensor.komfovent_exhaust_fan_current",
+  komfovent_t_ovr_remaining: "sensor.komfovent_ovr_time_remaining",
+  komfovent_t_intake_l1: "sensor.komfovent_intake_fan_level_1",
+  komfovent_t_intake_l2: "sensor.komfovent_intake_fan_level_2",
+  komfovent_t_intake_l3: "sensor.komfovent_intake_fan_level_3",
+  komfovent_t_intake_l4: "sensor.komfovent_intake_fan_level_4",
+  komfovent_t_exhaust_l1: "sensor.komfovent_exhaust_fan_level_1",
+  komfovent_t_exhaust_l2: "sensor.komfovent_exhaust_fan_level_2",
+  komfovent_t_exhaust_l3: "sensor.komfovent_exhaust_fan_level_3",
+  komfovent_t_exhaust_l4: "sensor.komfovent_exhaust_fan_level_4",
+  komfovent_alarm_status: "sensor.komfovent_alarm_status",
 };
 
 const TEXTS = {
@@ -145,6 +184,17 @@ const TEXTS = {
     drift: "Odchýlka od HA",
     card_version: "Verzia karty",
     sync_started: "Synchronizácia spustená",
+    fix_title: "Entity",
+    fix_scan: "Skontrolovať entity",
+    fix_apply: "Opraviť",
+    fix_hint: "Opraví ID entít s príponou _2 po prechode na blokovú konfiguráciu (len template entity Komfovent).",
+    fix_admin: "Oprava entít vyžaduje používateľa s právami administrátora.",
+    fix_ok: "Všetky entity majú správne ID",
+    fix_found: "nájdených",
+    fix_plan: "Treba opraviť",
+    fix_remove: "odstráni sa starý záznam",
+    fix_done: "Opravené",
+    fix_suffix: "Niektoré entity majú príponu _2 – oprav ich v záložke Nastavenie → Skontrolovať entity.",
     data_missing: "Chýbajú blokové senzory (komfovent_block_1000/1100/1200) – aktualizuj konfiguráciu HA.",
   },
   en: {
@@ -234,6 +284,17 @@ const TEXTS = {
     drift: "Drift from HA",
     card_version: "Card version",
     sync_started: "Sync started",
+    fix_title: "Entities",
+    fix_scan: "Check entities",
+    fix_apply: "Fix",
+    fix_hint: "Fixes entity IDs with a _2 suffix after migrating to the block configuration (Komfovent template entities only).",
+    fix_admin: "Fixing entities requires an administrator user.",
+    fix_ok: "All entity IDs are correct",
+    fix_found: "found",
+    fix_plan: "To fix",
+    fix_remove: "the old entry will be removed",
+    fix_done: "Fixed",
+    fix_suffix: "Some entities have a _2 suffix – fix them in Settings → Check entities.",
     data_missing: "Block sensors missing (komfovent_block_1000/1100/1200) – update the HA configuration.",
   },
 };
@@ -361,6 +422,79 @@ class KomfoventCard extends HTMLElement {
   _call(domain, service, data) {
     return this._hass.callService(domain, service, data);
   }
+  // ── fix entity IDs (suffix _2 after migration) ─────────────────────────────
+  async _fixPlan() {
+    const reg = await this._hass.callWS({ type: "config/entity_registry/list" });
+    const byId = Object.fromEntries(reg.map((e) => [e.entity_id, e]));
+    let found = 0;
+    const plan = [];
+    for (const e of reg) {
+      const want = TEMPLATE_UIDS[e.unique_id];
+      if (e.platform !== "template" || !want) continue;
+      found++;
+      if (e.entity_id !== want) plan.push({ from: e.entity_id, to: want, old: byId[want] });
+    }
+    return { found, plan };
+  }
+  async _fixScan() {
+    const t = this._t;
+    const msg = this._q("#fx-msg");
+    const list = this._q("#fx-list");
+    const btn = this._q("#fx-apply");
+    btn.hidden = true;
+    list.innerHTML = "";
+    if (!this._hass.user?.is_admin) {
+      msg.textContent = t.fix_admin;
+      msg.className = "msg err";
+      return;
+    }
+    try {
+      const { found, plan } = await this._fixPlan();
+      const total = Object.keys(TEMPLATE_UIDS).length;
+      if (!plan.length) {
+        msg.textContent = `✓ ${t.fix_ok} (${found}/${total} ${t.fix_found})`;
+        msg.className = "msg ok";
+        return;
+      }
+      list.innerHTML = plan
+        .map((p) => `<div><code>${p.from}</code> → <code>${p.to}</code>${p.old ? ` <span class="hint">(${t.fix_remove})</span>` : ""}</div>`)
+        .join("");
+      msg.textContent = `${t.fix_plan}: ${plan.length}`;
+      msg.className = "msg";
+      btn.textContent = `${t.fix_apply} (${plan.length})`;
+      btn.hidden = false;
+    } catch (err) {
+      msg.textContent = `${t.error}: ${err?.message || err}`;
+      msg.className = "msg err";
+    }
+  }
+  async _fixApply() {
+    const t = this._t;
+    const msg = this._q("#fx-msg");
+    const btn = this._q("#fx-apply");
+    btn.hidden = true;
+    try {
+      const { plan } = await this._fixPlan();
+      let ok = 0;
+      const errors = [];
+      for (const p of plan) {
+        try {
+          if (p.old) await this._hass.callWS({ type: "config/entity_registry/remove", entity_id: p.to });
+          await this._hass.callWS({ type: "config/entity_registry/update", entity_id: p.from, new_entity_id: p.to });
+          ok++;
+        } catch (err) {
+          errors.push(`${p.from}: ${err?.message || err}`);
+        }
+      }
+      this._q("#fx-list").innerHTML = errors.map((e) => `<div class="err">${e}</div>`).join("");
+      msg.textContent = `${t.fix_done}: ${ok}/${plan.length}`;
+      msg.className = errors.length ? "msg err" : "msg ok";
+    } catch (err) {
+      msg.textContent = `${t.error}: ${err?.message || err}`;
+      msg.className = "msg err";
+    }
+  }
+
   _moreInfo(key) {
     const entityId = this._e[key];
     if (!entityId) return;
@@ -474,6 +608,12 @@ class KomfoventCard extends HTMLElement {
         break;
       case "history":
         this._loadHistory();
+        break;
+      case "fix-scan":
+        this._fixScan();
+        break;
+      case "fix-apply":
+        this._fixApply();
         break;
       case "sync": {
         pending();
@@ -762,6 +902,7 @@ class KomfoventCard extends HTMLElement {
       <div class="ptop">${this._pillsHtml()}</div>
       <div class="tabs">${tabs.map((id) => `<button class="tab" data-action="tab" data-value="${id}">${t.tabs[id]}</button>`).join("")}</div>
       <div class="missing" id="data-missing" hidden>${t.data_missing}</div>
+      <div class="missing" id="suffix-missing" hidden>${t.fix_suffix}</div>
 
       <div class="pane" data-pane="home">
         <div class="home-top">
@@ -890,6 +1031,14 @@ class KomfoventCard extends HTMLElement {
           <span>${t.card_version}</span><span>${VERSION}</span>
         </div>
         <div class="msg" id="st-msg"></div>
+        <div class="fbox">
+          <div class="sub">${t.fix_title}</div>
+          <div class="hint">${t.fix_hint}</div>
+          <div class="ed-btns"><button data-action="fix-scan">${t.fix_scan}</button>
+            <button class="primary" data-action="fix-apply" id="fx-apply" hidden></button></div>
+          <div class="fx-list" id="fx-list"></div>
+          <div class="msg" id="fx-msg"></div>
+        </div>
       </div>
     </div>`;
   }
@@ -1103,6 +1252,10 @@ class KomfoventCard extends HTMLElement {
     const b1100 = this._block("block_1100", 17);
     const b1200 = this._block("block_1200", 6);
     this._q("#data-missing").hidden = !!(b1000 && b1100 && b1200);
+    const suffixed = ["supply_temp", "supply_fan", "exhaust_fan", "recuperator", "heater"].some(
+      (k) => !this._st(k) || this._st(k).state === "unavailable" ? !!this._hass.states[`${this._e[k]}_2`] : false
+    );
+    this._q("#suffix-missing").hidden = !suffixed;
     const mode = this._st("mode")?.state;
     const fmtPct = (v) => (v === undefined ? "—" : `${Math.round(v)} %`);
 
@@ -1313,6 +1466,9 @@ const STYLE = `
     background: var(--card-background-color, #1c1c1c); border: 1px solid var(--divider-color, #555); border-radius: 6px; padding: 3px 6px; }
   input.tm { width: 52px; text-align: center; }
   .ed-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fx-list { font-size: 12px; display: grid; gap: 2px; margin: 6px 0; overflow-wrap: anywhere; }
+  .fx-list code { font-size: 11.5px; }
+  .fx-list .err { color: var(--error-color, #db4437); }
   button.primary { background: var(--primary-color, #03a9f4); border-color: var(--primary-color, #03a9f4); color: #fff; }
   .msg { font-size: 11px; color: var(--secondary-text-color, #9b9b9b); min-height: 14px; }
   .msg.ok { color: #4caf50; }
