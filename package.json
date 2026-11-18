@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "rollup -c",
+    "build:komfovent": "node scripts/build-komfovent-variants.mjs",
     "watch": "rollup -c --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

@@ -12,6 +12,7 @@
  *   show_schedule: true          # optional, weekly schedule (registers 1300–1362)
  *   modbus_hub: komfovent_c4     # optional, hub name for writing the schedule
  *   modbus_slave: 20             # optional, Modbus ID of the unit
+ *   language: sk                 # optional, sk | en (default: Home Assistant language)
  *   entities:                    # optional – only entities named differently
  *     supply_temp: sensor.komfovent_supply_air_temp
  *
@@ -19,7 +20,10 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
+// Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
+// komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
+const FORCE_LANG = null;
 
 const DEFAULT_ENTITIES = {
   power: "switch.komfovent_power",
@@ -322,9 +326,13 @@ class KomfoventCard extends HTMLElement {
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────
+  /** "sk" or "en": build constant, card option, then the Home Assistant language. */
+  get _langCode() {
+    const lang = FORCE_LANG || this._config?.language || this._hass?.locale?.language || this._hass?.language || "en";
+    return lang.startsWith("sk") || lang.startsWith("cs") ? "sk" : "en";
+  }
   get _t() {
-    const lang = this._hass?.locale?.language || this._hass?.language || "en";
-    return TEXTS[lang.startsWith("sk") || lang.startsWith("cs") ? "sk" : "en"];
+    return TEXTS[this._langCode];
   }
   _st(key) {
     return this._hass?.states[this._e[key]];
@@ -338,7 +346,7 @@ class KomfoventCard extends HTMLElement {
   }
   _fmt(v, digits = 1) {
     if (v === undefined) return "—";
-    const lang = this._hass?.locale?.language || this._hass?.language || "sk";
+    const lang = this._langCode === "sk" ? "sk" : this._hass?.locale?.language || "en";
     return v.toLocaleString(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
   _q(sel) {
@@ -691,7 +699,7 @@ class KomfoventCard extends HTMLElement {
         out.textContent = t.no_history;
         return;
       }
-      const lang = this._hass.locale?.language || this._hass.language || "sk";
+      const lang = this._langCode === "sk" ? "sk" : this._hass.locale?.language || "en";
       out.innerHTML = rows
         .map(
           (r) => `<div class="hrow"><span>${new Date(r.ts).toLocaleString(lang, { dateStyle: "short", timeStyle: "short" })}</span>
@@ -712,11 +720,7 @@ class KomfoventCard extends HTMLElement {
       <ha-card><div class="wrap">
         <div class="header">
           <div class="title">${cfg.name || t.title}</div>
-          <div class="pills">
-            <span class="pill muted" id="p-clock" data-info="clock"></span>
-            <span class="pill alarm" id="p-alarm" data-info="alarm" hidden></span>
-            <span class="pill" id="p-status" data-info="fans_running"></span>
-          </div>
+          ${cfg.show_controls ? "" : this._pillsHtml()}
         </div>
         <div class="body">
           <div class="schema-wrap">${this._svgSkeleton(t)}</div>
@@ -725,6 +729,14 @@ class KomfoventCard extends HTMLElement {
       </div></ha-card>`;
     this._built = true;
     if (this._config.show_controls) this._setTab(this._tab);
+  }
+
+  _pillsHtml() {
+    return `<div class="pills">
+      <span class="pill muted" id="p-clock" data-info="clock"></span>
+      <span class="pill alarm" id="p-alarm" data-info="alarm" hidden></span>
+      <span class="pill" id="p-status" data-info="fans_running"></span>
+    </div>`;
   }
 
   _panelHtml(t) {
@@ -741,6 +753,7 @@ class KomfoventCard extends HTMLElement {
       `<span class="st" id="${id}"><ha-icon icon="${icon}"></ha-icon><span>${label}</span></span>`;
 
     return `<div class="side">
+      <div class="ptop">${this._pillsHtml()}</div>
       <div class="tabs">${tabs.map((id) => `<button class="tab" data-action="tab" data-value="${id}">${t.tabs[id]}</button>`).join("")}</div>
       <div class="missing" id="data-missing" hidden>${t.data_missing}</div>
 
@@ -883,23 +896,24 @@ class KomfoventCard extends HTMLElement {
       `<g id="flow${i}">${FLOW_LAYERS.map(
         (l) => `<path class="flow" style="stroke-dasharray:${l.dash};opacity:${l.opacity}"/>`
       ).join("")}</g>`;
+    const rr = 56; // rotor outer radius (was 70)
     const ducts = [
-      `M 20 ${yS} L ${rx - 70} ${yS}`,
-      `M ${rx + 70} ${yS} L 736 ${yS}`,
-      `M 740 ${yE} L ${rx + 70} ${yE}`,
-      `M ${rx - 70} ${yE} L 16 ${yE}`,
+      `M 20 ${yS} L ${rx - rr} ${yS}`,
+      `M ${rx + rr} ${yS} L 736 ${yS}`,
+      `M 740 ${yE} L ${rx + rr} ${yE}`,
+      `M ${rx - rr} ${yE} L 16 ${yE}`,
     ];
     const blade = (a) => `<path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(${a})"/>`;
     const fan = (id, cx, cy, info) => `<g class="fan" id="${id}" data-info="${info}" transform="translate(${cx},${cy})">
-        <circle r="20" class="fan-ring"/><g class="blades">${blade(0)}${blade(120)}${blade(240)}</g>
-        <circle r="3" class="hub"/><text y="38" text-anchor="middle" class="device-label"></text></g>`;
-    const filter = (x, y) => `<g class="filter" transform="translate(${x},${y})">
+        <circle r="24" class="fan-ring"/><g transform="scale(1.2)"><g class="blades">${blade(0)}${blade(120)}${blade(240)}</g></g>
+        <circle r="3.6" class="hub"/><text y="42" text-anchor="middle" class="device-label"></text></g>`;
+    const filter = (x, y) => `<g class="filter" transform="translate(${x},${y}) scale(1.2)">
         <rect x="-7" y="-16" width="14" height="32" rx="2"/><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"/></g>`;
     const arrow = (id, x, y, dir) =>
       `<path id="${id}" d="M ${x - 7 * dir} ${y - 7} L ${x + 5 * dir} ${y} L ${x - 7 * dir} ${y + 7} Z"/>`;
     const spokes = Array.from({ length: 12 }, (_, i) => {
       const a = (i * Math.PI) / 6;
-      return `<line x1="0" y1="0" x2="${(64 * Math.cos(a)).toFixed(1)}" y2="${(64 * Math.sin(a)).toFixed(1)}"/>`;
+      return `<line x1="0" y1="0" x2="${(51 * Math.cos(a)).toFixed(1)}" y2="${(51 * Math.sin(a)).toFixed(1)}"/>`;
     }).join("");
     const chip = (id, info) =>
       `<g class="chip" id="${id}" data-info="${info}"><rect height="22" rx="4"/><text y="15" text-anchor="middle"></text></g>`;
@@ -916,7 +930,7 @@ class KomfoventCard extends HTMLElement {
       <line x1="110" y1="40" x2="110" y2="322" class="wall"/>
       <text x="100" y="52" text-anchor="end" class="zone">${t.outside}</text>
       <text x="120" y="52" class="zone">${t.inside}</text>
-      <rect id="unit" x="170" y="70" width="420" height="226" rx="10" class="unit"/>
+      <rect id="unit" x="170" y="70" width="420" height="240" rx="10" class="unit"/>
       ${ducts.map((d, i) => `<path id="duct${i}" d="${d}" class="duct"/>${flows(i)}`).join("")}
       ${arrow("arr0", 150, yS, 1)}${arrow("arr1", 742, yS, 1)}${arrow("arr2", 650, yE, -1)}${arrow("arr3", 13, yE, -1)}
       <text x="22" y="${yS - 14}" class="device-label">${t.outdoor_air}</text>
@@ -925,14 +939,14 @@ class KomfoventCard extends HTMLElement {
       <text x="738" y="${yE + 24}" text-anchor="end" class="device-label">${t.extract_air}</text>
       ${filter(205, yS)}${filter(555, yE)}
       <g class="rotor" id="rotor" data-info="recuperator" transform="translate(${rx},185)">
-        <circle r="70" class="rotor-bg"/>
-        <g class="wheel"><circle r="64" class="rotor-rim"/>${spokes}</g>
-        <circle r="24" class="rotor-hub"/>
+        <circle r="${rr}" class="rotor-bg"/>
+        <g class="wheel"><circle r="51" class="rotor-rim"/>${spokes}</g>
+        <circle r="22" class="rotor-hub"/>
         <text y="5" text-anchor="middle" class="device-value" id="rotor-val"></text>
-        <text y="88" text-anchor="middle" class="device-label">${t.rotor}</text>
+        <text y="${rr + 18}" text-anchor="middle" class="device-label">${t.rotor}</text>
       </g>
       ${fan("fan-s", 420, yS, "supply_fan")}
-      ${fan("fan-e", 225, yE, "exhaust_fan")}
+      ${fan("fan-e", 212, yE, "exhaust_fan")}
       <g class="heater" data-info="heater" transform="translate(500,${yS})">
         <rect x="-26" y="-18" width="52" height="36" rx="4" class="heater-box"/>
         <path id="coil" d="M-20 0 L-15 -9 L-8 9 L-1 -9 L6 9 L13 -9 L20 0" class="coil"/>
@@ -946,7 +960,7 @@ class KomfoventCard extends HTMLElement {
   // ── update in place ──────────────────────────────────────────────────────
   _update(rebuild = false) {
     if (!this._hass || !this._config) return;
-    const lang = this._hass.locale?.language || this._hass.language;
+    const lang = this._langCode;
     if (rebuild || !this._built || lang !== this._lang) {
       this._lang = lang;
       this._build();
@@ -1036,18 +1050,19 @@ class KomfoventCard extends HTMLElement {
     coil.setAttribute("filter", heater > 0 ? "url(#heat)" : "");
     this._q("#heater-lbl").textContent = `${t.heater} ${Math.round(heater)} %`;
 
+    // chips share their left edge at x
     const chip = (id, x, y, text, color) => {
       const g = this._q(id);
       const w = Math.max(44, text.length * 7 + 14);
-      g.setAttribute("transform", `translate(${x - w / 2},${y - 11})`);
+      g.setAttribute("transform", `translate(${x},${y - 11})`);
       g.querySelector("rect").setAttribute("width", w);
       const tx = g.querySelector("text");
       tx.setAttribute("x", w / 2);
       tx.textContent = text;
       tx.style.fill = color || "";
     };
-    chip("#chip-supply", 660, 150, `${t.supply} ${this._fmt(supplyT)} °C`, supplyCol);
-    chip("#chip-sp", 660, 178, `${t.setpoint} ${this._fmt(setpoint)} °C`);
+    chip("#chip-supply", 604, 150, `${t.supply} ${this._fmt(supplyT)} °C`, supplyCol);
+    chip("#chip-sp", 604, 178, `${t.setpoint} ${this._fmt(setpoint)} °C`);
   }
 
   _updatePanel({ t, powerOn, boostOn, boostLeft, setpoint, supplyT, supplyFan, exhaustFan, rotor, heater, running, alarm, levelCur }) {
@@ -1174,12 +1189,10 @@ const STYLE = `
   .pill.alarm { color: #fff; background: var(--error-color, #db4437); border-color: transparent; }
   [hidden] { display: none !important; }
 
-  .body { display: grid; gap: 10px; }
-  svg.schema { display: block; width: 100%; height: auto; max-height: 44vh; font-family: inherit; }
-  @container (min-width: 820px) {
-    .body { grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); align-items: start; gap: 16px; }
-    svg.schema { max-height: min(62vh, 520px); }
-  }
+  .body { display: grid; gap: 12px; }
+  svg.schema { display: block; width: 100%; height: auto; max-height: min(46vh, 460px); font-family: inherit; }
+  .side { width: 100%; max-width: 640px; justify-self: center; }
+  .ptop { display: flex; justify-content: flex-end; }
   .wall { stroke: var(--divider-color, #666); stroke-width: 2; stroke-dasharray: 6 6; }
   .zone { fill: var(--secondary-text-color, #9b9b9b); font-size: 11px; letter-spacing: 1px; }
   .unit { fill: var(--card-background-color, #1c1c1c); stroke-width: 2; }
@@ -1212,8 +1225,8 @@ const STYLE = `
   @media (prefers-reduced-motion: reduce) { .flow, .wheel, .blades { animation: none !important; } }
 
   .side { display: grid; gap: 12px; align-content: start; }
-  button { font: inherit; font-size: 13px; color: var(--primary-text-color, #e1e1e1); background: transparent; cursor: pointer;
-    border: 1px solid var(--divider-color, #555); border-radius: 6px; padding: 4px 10px; line-height: 1.3;
+  button { font: inherit; font-size: 15.5px; color: var(--primary-text-color, #e1e1e1); background: transparent; cursor: pointer;
+    border: 1px solid var(--divider-color, #555); border-radius: 7px; padding: 5px 12px; line-height: 1.3;
     touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent; }
   button:hover { border-color: var(--primary-color, #03a9f4); }
   button:active { transform: scale(0.97); }
@@ -1224,27 +1237,27 @@ const STYLE = `
   .tg { display: inline-flex; align-items: center; gap: 6px; }
   .tg.on { border-color: #4caf50; color: #4caf50; background: rgba(76,175,80,.10); }
   .tg.boost { border-color: #ff7043; color: #ff7043; background: rgba(255,112,67,.10); }
-  .ico { font-size: 14px; }
+  .ico { font-size: 17px; }
   .seg { display: inline-flex; }
-  .seg button { border-radius: 0; margin-left: -1px; min-width: 34px; }
-  .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
-  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button { border-radius: 0; margin-left: -1px; min-width: 41px; }
+  .seg button:first-child { border-radius: 7px 0 0 7px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 7px 7px 0; }
   .seg button.sel { background: var(--primary-color, #03a9f4); border-color: var(--primary-color, #03a9f4); color: #fff; }
   .seg.dim button.sel { opacity: .55; }
   .stepper { display: inline-flex; align-items: center; gap: 4px; }
-  .stepper button { width: 30px; padding: 2px 0; font-size: 15px; }
+  .stepper button { width: 36px; padding: 2px 0; font-size: 18px; }
   .stepper span { min-width: 64px; text-align: center; font-size: 15px; font-weight: 500; color: var(--primary-text-color, #e1e1e1); cursor: pointer; }
 
   .sched { display: grid; gap: 6px; border-top: 1px solid var(--divider-color, #333); padding-top: 8px; }
   .sched-head { display: flex; align-items: baseline; gap: 8px; }
   .sub { font-size: 14px; font-weight: 500; color: var(--primary-text-color, #e1e1e1); }
   .hint, .missing { font-size: 11px; color: var(--secondary-text-color, #9b9b9b); }
-  .sgrid { display: grid; grid-template-columns: 30px 1fr; gap: 3px 6px; align-items: center; }
+  .sgrid { display: grid; grid-template-columns: 36px 1fr; gap: 3px 6px; align-items: center; }
   .scale { position: relative; height: 13px; font-size: 10px; color: var(--secondary-text-color, #9b9b9b); }
   .scale span { position: absolute; transform: translateX(-50%); }
   .scale span:first-child { transform: none; }
   .scale span:last-child { transform: translateX(-100%); }
-  .day { padding: 1px 0; font-size: 11px; border-color: transparent; color: var(--secondary-text-color, #9b9b9b); }
+  .day { padding: 1px 0; font-size: 13px; border-color: transparent; color: var(--secondary-text-color, #9b9b9b); }
   .day.sel { border-color: var(--primary-color, #03a9f4); color: var(--primary-text-color, #e1e1e1); }
   .bar { position: relative; height: 16px; border-radius: 3px; cursor: pointer;
     background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px calc(100% / 8)), rgba(255,255,255,.03); }
@@ -1268,7 +1281,7 @@ const STYLE = `
 
   /* C4.1-style panel */
   .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--divider-color, #333); flex-wrap: wrap; }
-  .tab { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; color: var(--secondary-text-color, #9b9b9b); }
+  .tab { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 7px 12px; color: var(--secondary-text-color, #9b9b9b); }
   .tab.sel { color: var(--primary-text-color, #e1e1e1); border-bottom-color: var(--primary-color, #03a9f4); }
   .pane { display: grid; gap: 10px; align-content: start; }
   .pane.sched { border-top: none; padding-top: 0; }
@@ -1279,12 +1292,12 @@ const STYLE = `
   .spbox { display: grid; gap: 2px; justify-items: end; }
   .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .mode { position: relative; }
-  .mbtn { width: 100%; display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 10px; }
+  .mbtn { width: 100%; display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 10px; font-size: 13px; }
   .mbtn ha-icon { --mdc-icon-size: 26px; }
   .mbtn.sel { background: var(--primary-color, #03a9f4); border-color: var(--primary-color, #03a9f4); color: #fff; }
   .mbtn.sel small { color: rgba(255,255,255,.8); }
   .modes.dim .mbtn.sel { opacity: .55; }
-  .gear { position: absolute; top: 3px; right: 3px; border: none; padding: 0 4px; font-size: 13px; color: var(--secondary-text-color, #9b9b9b); }
+  .gear { position: absolute; top: 3px; right: 3px; border: none; padding: 0 4px; font-size: 14px; color: var(--secondary-text-color, #9b9b9b); }
   .gear.sel { color: var(--primary-color, #03a9f4); }
   .mbtn.sel + .gear { color: rgba(255,255,255,.85); }
   .icons { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1306,6 +1319,10 @@ const STYLE = `
     background: var(--card-background-color, #1c1c1c); border: 1px solid var(--divider-color, #555); border-radius: 6px; padding: 3px 4px; }
 `;
 
+if (customElements.get("komfovent-card")) {
+  // another build (e.g. _sk and _en) is already loaded – keep only one resource in Home Assistant
+  console.warn("komfovent-card is already defined – load only one of komfovent-card*.js");
+} else {
 customElements.define("komfovent-card", KomfoventCard);
 window.customCards = window.customCards || [];
 window.customCards.push({
@@ -1314,4 +1331,5 @@ window.customCards.push({
   description: "Komfovent C4 ventilation unit – schema and a C4.1-style control panel",
   preview: true,
 });
-console.info(`%c KOMFOVENT-CARD %c ${VERSION} `, "background:#03a9f4;color:#fff", "background:#333;color:#fff");
+}
+console.info(`%c KOMFOVENT-CARD %c ${VERSION}${FORCE_LANG ? ` (${FORCE_LANG})` : ""} `, "background:#03a9f4;color:#fff", "background:#333;color:#fff");

@@ -158,8 +158,8 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 
 ## 7. Komfovent Card
 
-1. Copy [`komfovent-card.js`](../../komfovent-card.js) to `<config>/www/`.
-2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card.js?v=1.2.0` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
+1. Copy one card file to `<config>/www/`: [`komfovent-card_sk.js`](../../komfovent-card_sk.js) (Slovak), [`komfovent-card_en.js`](../../komfovent-card_en.js) (English) or [`komfovent-card.js`](../../komfovent-card.js) (follows the Home Assistant language). Load only one of them.
+2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.3.0` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
 3. Reload the browser with **Ctrl+F5**.
 4. Add the card from [`komfovent-card.yaml`](komfovent-card.yaml):
 
@@ -167,7 +167,7 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
    type: custom:komfovent-card
    ```
 
-On cards wider than about 820 px the schema and the controls sit side by side and the schema height is limited, so a full-width dashboard fits the screen without a scrollbar; on phones everything stacks.
+The control panel sits centred below the schema; the schema height is limited, so a full-width dashboard fits the screen without a scrollbar.
 
 The schema shows outdoor air → filter → rotary heat exchanger → supply fan → heater → rooms and extract → filter → heat exchanger → exhaust fan → outside. Air flow is animated with the fan speed, fans and the rotor spin with their level, the heater glows while heating and the supply duct takes the color of the supply temperature. Tapping any part opens more info. Next to it are controls for power, boost (with remaining minutes), ventilation level 1–3 (dimmed in Auto mode, the weekly schedule decides there), setpoint in 0.5 °C steps (sent 0.9 s after the last click), season and mode. Entities named differently go under `entities:`.
 

@@ -59,18 +59,28 @@ Connect only **one** gateway to J1 at a time – the panel plus two gateways wou
 
 ## Komfovent Card
 
-`komfovent-card.js` in the repository root is a separate card in the Heating Visualizer style:
+The card comes in three files in the repository root – load **exactly one** of them as a resource:
+
+| File | Language |
+| --- | --- |
+| `komfovent-card_sk.js` | always Slovak |
+| `komfovent-card_en.js` | always English |
+| `komfovent-card.js` | follows the Home Assistant language (or `language: sk` / `en` in the card config) |
+
+`komfovent-card_sk.js` and `komfovent-card_en.js` are generated from `komfovent-card.js` with `npm run build:komfovent`. The card title comes from `name:` in the card YAML if set.
+
+It is a separate card in the Heating Visualizer style:
 
 - schema of the unit with animated air flow, spinning fans and rotary heat exchanger, heater glow and the supply duct colored by temperature;
-- next to it a panel modelled on the Komfovent **C4.1** touch panel, with tabs:
+- below it a panel modelled on the Komfovent **C4.1** touch panel, with tabs:
   - **Home** – supply temperature, setpoint, the three modes *Away / Home / Boost* (levels 1–3) with an editor for the supply/extract intensity of each mode (registers 1103–1109), power, OVR boost, manual/auto and status icons;
   - **Overview** – current alarm and warnings (0x2000 = service time), detailed values, alarm history of the last 30 days from the Home Assistant recorder;
   - **Schedule** – weekly schedule (registers 1300–1362) with an editor for the three periods of each day;
   - **Functions** – setpoint shift −9…+9 °C in a time window (1202–1204) and the OVR function: duration (1112) and intensity (1106/1110, level 4);
   - **Settings** – season, schedule control, unit clock with *Sync with HA*, Modbus ID;
-- side-by-side layout on wide dashboards, stacked on phones; follows the Home Assistant language (English, Slovak).
+- the panel sits centred below the schema and the card fits a full-height dashboard without scrolling.
 
-Installation: copy it to `<config>/www/`, add `/local/komfovent-card.js?v=1.2.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
+Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.3.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
 
 ## Register reference
 
