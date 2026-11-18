@@ -143,7 +143,7 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 ## 7. Komfovent Card
 
 1. Copy one card file to `<config>/www/`: [`komfovent-card_sk.js`](../../komfovent-card_sk.js) (Slovak), [`komfovent-card_en.js`](../../komfovent-card_en.js) (English) or [`komfovent-card.js`](../../komfovent-card.js) (follows the Home Assistant language). Load only one of them.
-2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.5.0` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
+2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.5.1` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
 3. Reload the browser with **Ctrl+F5**.
 4. Add the card from [`komfovent-card.yaml`](komfovent-card.yaml):
 
@@ -172,7 +172,7 @@ The card builds its DOM once and only updates values afterwards, so buttons reac
 | Values are from the neighbouring register | 1-based manual addresses used directly | Subtract 1 |
 | Log full of `got id=254, Skipping` | Gateway forwards panel traffic | `pymodbus.logging: error` (harmless) |
 | Conflict detection unticks itself | Gateway type *Simple Modbus TCP to RTU* | Use *Multi-host non-storage type* |
-| Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5, or a version in the resource URL (`/local/komfovent-card_sk.js?v=1.5.0`) |
+| Card missing after a Home Assistant restart | Old frontend cached | Ctrl+F5, or a version in the resource URL (`/local/komfovent-card_sk.js?v=1.5.1`) |
 | Card shows *Schedule sensors missing* | Schedule sensors not configured | Add *Komfovent Schedule Times / Levels* from the example configuration |
 | Buttons need a long press (card 1.0.0) | The card re-rendered on every state update | Update to `komfovent-card.js` 1.1.0+ and reload with Ctrl+F5 |
 

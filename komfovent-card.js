@@ -20,7 +20,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.5.0";
+const VERSION = "1.5.1";
 // Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
 // komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
 const FORCE_LANG = null;
@@ -154,7 +154,7 @@ const TEXTS = {
     recovery: "Rekuperácia",
     fans: "Ventilátory",
     sched_on: "Program",
-    ovr: "OVR funkcia",
+    ovr: "Boost (OVR)",
     alarm_word: "Alarm",
     no_alarm: "Bez porúch",
     warnings: "Varovania",
@@ -176,8 +176,8 @@ const TEXTS = {
     to: "Do",
     reload: "Načítať znova",
     duration: "Trvanie",
-    ovr_hint: "Dočasný režim s vlastnou intenzitou ventilátorov (1–90 min).",
-    ovr_level4: "Intenzita OVR = stupeň 4 (registre 1106/1110).",
+    ovr_hint: "Dočasný režim s vlastnou intenzitou ventilátorov (1–90 min). V jednotke sa volá OVR. Výberom stupňa 1–3 sa boost ukončí.",
+    ovr_level4: "Intenzita boostu = stupeň 4 (registre 1106/1110).",
     bad_value: "Neplatná hodnota",
     schedule_enabled: "Riadenie programom",
     sync: "Synchronizovať s HA",
@@ -246,7 +246,7 @@ const TEXTS = {
     error: "Write error",
     inactive_hint: "00:00–00:00 = period not used",
     tabs: { home: "Home", overview: "Overview", schedule: "Schedule", functions: "Functions", settings: "Settings" },
-    modes: ["", "Away", "Home", "Boost"],
+    modes: ["", "Away", "Home", "Intensive"],
     intensity: "Ventilation intensity",
     flows: "Air flow",
     heating: "Heating",
@@ -254,7 +254,7 @@ const TEXTS = {
     recovery: "Recovery",
     fans: "Fans",
     sched_on: "Schedule",
-    ovr: "OVR function",
+    ovr: "Boost (OVR)",
     alarm_word: "Alarm",
     no_alarm: "No faults",
     warnings: "Warnings",
@@ -276,8 +276,8 @@ const TEXTS = {
     to: "To",
     reload: "Reload",
     duration: "Duration",
-    ovr_hint: "Temporary mode with its own fan intensity (1–90 min).",
-    ovr_level4: "OVR intensity = level 4 (registers 1106/1110).",
+    ovr_hint: "Temporary mode with its own fan intensity (1–90 min). The unit calls it OVR. Choosing level 1–3 ends the boost.",
+    ovr_level4: "Boost intensity = level 4 (registers 1106/1110).",
     bad_value: "Invalid value",
     schedule_enabled: "Schedule control",
     sync: "Sync with HA",
@@ -576,6 +576,8 @@ class KomfoventCard extends HTMLElement {
       case "level":
         this.shadowRoot.querySelectorAll("#modes .mbtn").forEach((b) => b.classList.toggle("sel", b === el));
         pending();
+        // choosing a level ends a running boost (OVR), like on the wall panel
+        if (this._is("boost", "on")) this._call("switch", "turn_off", { entity_id: this._e.boost });
         this._call("select", "select_option", { entity_id: this._e.level, option: v });
         break;
       case "season":
@@ -940,7 +942,7 @@ class KomfoventCard extends HTMLElement {
         <div class="icons">
           ${chip("st-fans", "mdi:fan", t.fans)}${chip("st-rec", "mdi:recycle-variant", t.recovery)}
           ${chip("st-heat", "mdi:radiator", t.heating)}${chip("st-cool", "mdi:snowflake", t.cooling)}
-          ${chip("st-sched", "mdi:calendar-clock", t.sched_on)}${chip("st-ovr", "mdi:rocket-launch", "OVR")}
+          ${chip("st-sched", "mdi:calendar-clock", t.sched_on)}${chip("st-ovr", "mdi:rocket-launch", t.boost)}
           ${chip("st-alarm", "mdi:alert", t.alarm_word)}
         </div>
       </div>
@@ -1264,7 +1266,8 @@ class KomfoventCard extends HTMLElement {
     this._q("#h-temp").style.color = airColor(supplyT);
     if (this._pendingSetpoint === undefined) this._q("#sp-value").textContent = `${this._fmt(setpoint)} °C`;
     const level = this._st("level")?.state;
-    this.shadowRoot.querySelectorAll("#modes .mbtn").forEach((b) => b.classList.toggle("sel", b.dataset.value === level));
+    // while boost (OVR) runs no level is highlighted
+    this.shadowRoot.querySelectorAll("#modes .mbtn").forEach((b) => b.classList.toggle("sel", !boostOn && b.dataset.value === level));
     const modes = this._q("#modes");
     modes.classList.toggle("dim", mode === "Auto");
     modes.title = mode === "Auto" ? t.auto_hint : "";
@@ -1319,7 +1322,7 @@ class KomfoventCard extends HTMLElement {
       [t.heater, fmtPct(heater), "heater"],
       [t.water_heating, fmtPct(this._num("water_heating")), "water_heating"],
       [t.water_cooling, fmtPct(this._num("water_cooling")), "water_cooling"],
-      [t.current_level, levelCur === undefined ? "—" : levelCur === 0 ? t.standby : levelCur === 4 ? "OVR" : `${levelCur}`, "level_current"],
+      [t.current_level, levelCur === undefined ? "—" : levelCur === 0 ? t.standby : levelCur === 4 ? t.boost : `${levelCur}`, "level_current"],
       [t.unit_time, `${this._st("clock")?.state ?? "—"} · ${this._st("date")?.state ?? ""}`, "clock"],
     ];
     this._q("#ov-details").innerHTML = rows

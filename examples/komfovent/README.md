@@ -84,7 +84,7 @@ It is a separate card in the Heating Visualizer style:
 
 Settings tab: season, schedule on/off, unit clock with sync, Modbus ID and **Check entities** – fixes entity IDs that got a `_2` suffix after migrating to the block configuration (needs an administrator user).
 
-Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.5.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
+Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.5.1` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
 
 ## Register reference
 

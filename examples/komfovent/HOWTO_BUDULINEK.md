@@ -159,7 +159,7 @@ Check the configuration (Developer tools → YAML → *Check configuration*), re
 ## 7. Komfovent Card
 
 1. Copy one card file to `<config>/www/`: [`komfovent-card_sk.js`](../../komfovent-card_sk.js) (Slovak), [`komfovent-card_en.js`](../../komfovent-card_en.js) (English) or [`komfovent-card.js`](../../komfovent-card.js) (follows the Home Assistant language). Load only one of them.
-2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.5.0` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
+2. Settings → Dashboards → ⋮ → **Resources** → add `/local/komfovent-card_sk.js?v=1.5.1` as **JavaScript module** (change the version for every update, otherwise the browser keeps the old file).
 3. Reload the browser with **Ctrl+F5**.
 4. Add the card from [`komfovent-card.yaml`](komfovent-card.yaml):
 
