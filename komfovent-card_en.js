@@ -21,7 +21,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.6.0";
+const VERSION = "1.7.0";
 // Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
 // komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
 const FORCE_LANG = "en";
@@ -909,17 +909,6 @@ class KomfoventCard extends HTMLElement {
 
       <div class="panes">
       <div class="pane" data-pane="home">
-        <div class="home-top">
-          <div class="bigtemp" data-info="supply_temp"><span id="h-temp">—</span><small>${t.supply}</small></div>
-          <div class="spbox">
-            <span class="lbl">${t.setpoint}</span>
-            <div class="stepper">
-              <button data-action="sp" data-value="-0.5">−</button>
-              <span id="sp-value" data-info="setpoint"></span>
-              <button data-action="sp" data-value="0.5">+</button>
-            </div>
-          </div>
-        </div>
         <div class="modes" id="modes">${[1, 2, 3]
           .map(
             (l) => `<div class="mode">
@@ -1032,6 +1021,10 @@ class KomfoventCard extends HTMLElement {
       <div class="pane two off" data-pane="settings">
         <div class="col">
         <div class="kv">
+          <span>${t.setpoint}</span><span><span class="stepper">
+              <button data-action="sp" data-value="-0.5">−</button>
+              <span id="sp-value" data-info="setpoint"></span>
+              <button data-action="sp" data-value="0.5">+</button></span></span>
           <span>${t.season}</span><span>${seg("seg-season", "season", [["Summer", "☀ " + t.summer], ["Winter", "❄ " + t.winter]])}</span>
           <span>${t.schedule_enabled}</span><span>${seg("seg-mode2", "mode", [["Manual", t.manual], ["Auto", t.auto]])}</span>
           <span>${t.unit_time}</span><span><span id="st-time"></span> <button data-action="sync">${t.sync}</button></span>
@@ -1093,9 +1086,7 @@ class KomfoventCard extends HTMLElement {
     const filter = (x, y) => `<g class="filter" transform="translate(${x},${y}) scale(1.2)">
         <rect x="-7" y="-16" width="14" height="32" rx="2"/><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"/></g>`;
     const arrow = (id, x, y, dir) =>
-      `<path id="${id}" d="M ${x - 7 * dir} ${y - 7} L ${x + 5 * dir} ${y} L ${x - 7 * dir} ${y + 7} Z"/>`;
-    const chip = (id, info) =>
-      `<g class="chip" id="${id}" data-info="${info}"><rect height="22" rx="4"/><text y="15" text-anchor="middle"></text></g>`;
+      `<path id="${id}" d="M ${x - 9 * dir} ${y - 10} L ${x + 7 * dir} ${y} L ${x - 9 * dir} ${y + 10} Z"/>`;
 
     return `
     <svg viewBox="0 32 760 298" class="schema" role="img" aria-label="Komfovent">
@@ -1140,8 +1131,7 @@ class KomfoventCard extends HTMLElement {
         <path id="coil" d="M-20 0 L-15 -9 L-8 9 L-1 -9 L6 9 L13 -9 L20 0" class="coil"/>
         <text y="38" text-anchor="middle" class="device-label" id="heater-lbl"></text>
       </g>
-      ${chip("chip-supply", "supply_temp")}
-      ${chip("chip-sp", "setpoint")}
+      <text x="736" y="${yE - 16}" text-anchor="end" class="bigtemp-svg" id="h-temp" data-info="supply_temp"></text>
     </svg>`;
   }
 
@@ -1227,7 +1217,9 @@ class KomfoventCard extends HTMLElement {
     setFan("#fan-e", exhaustFan, `${t.exhaust} ${Math.round(exhaustFan)} %`);
 
     // plate exchanger + on/off bypass: recovery level below 50 % = bypass open
-    const bypassOpen = running && rotor < 50;
+    // the bypass is used for summer free cooling; in winter a low recovery level means start-up / frost protection
+    const summer = this._st("season")?.state === "Summer";
+    const bypassOpen = running && summer && rotor < 50;
     this._q("#xp-s").style.stroke = supplyCol;
     this._q("#xp-e").style.stroke = C.extract;
     this._q("#rotor").classList.toggle("on", running && rotor > 0);
@@ -1243,19 +1235,9 @@ class KomfoventCard extends HTMLElement {
     coil.setAttribute("filter", heater > 0 ? "url(#heat)" : "");
     this._q("#heater-lbl").textContent = `${t.heater} ${Math.round(heater)} %`;
 
-    // chips share their left edge at x
-    const chip = (id, x, y, text, color) => {
-      const g = this._q(id);
-      const w = Math.max(44, text.length * 7 + 14);
-      g.setAttribute("transform", `translate(${x},${y - 11})`);
-      g.querySelector("rect").setAttribute("width", w);
-      const tx = g.querySelector("text");
-      tx.setAttribute("x", w / 2);
-      tx.textContent = text;
-      tx.style.fill = color || "";
-    };
-    chip("#chip-supply", 604, 150, `${t.supply} ${this._fmt(supplyT)} °C`, supplyCol);
-    chip("#chip-sp", 604, 178, `${t.setpoint} ${this._fmt(setpoint)} °C`);
+    const ht = this._q("#h-temp");
+    ht.textContent = supplyT === undefined ? "—" : `${this._fmt(supplyT)}°`;
+    ht.style.fill = supplyCol;
   }
 
   _updatePanel({ t, powerOn, boostOn, boostLeft, setpoint, supplyT, supplyFan, exhaustFan, rotor, heater, running, alarm, levelCur }) {
@@ -1271,8 +1253,6 @@ class KomfoventCard extends HTMLElement {
     const fmtPct = (v) => (v === undefined ? "—" : `${Math.round(v)} %`);
 
     // home
-    this._q("#h-temp").textContent = supplyT === undefined ? "—" : `${this._fmt(supplyT)}°`;
-    this._q("#h-temp").style.color = airColor(supplyT);
     if (this._pendingSetpoint === undefined) this._q("#sp-value").textContent = `${this._fmt(setpoint)} °C`;
     const level = this._st("level")?.state;
     // while boost (OVR) runs no level is highlighted
@@ -1327,7 +1307,7 @@ class KomfoventCard extends HTMLElement {
       [`${t.supply} – ${t.fans.toLowerCase()}`, fmtPct(supplyFan), "supply_fan"],
       [`${t.exhaust} – ${t.fans.toLowerCase()}`, fmtPct(exhaustFan), "exhaust_fan"],
       [t.rotor, fmtPct(rotor), "recuperator"],
-      [t.bypass, running && rotor < 50 ? t.bypass_open : t.bypass_closed, "recuperator"],
+      [t.bypass, running && this._st("season")?.state === "Summer" && rotor < 50 ? t.bypass_open : t.bypass_closed, "recuperator"],
       [t.heater, fmtPct(heater), "heater"],
       [t.water_heating, fmtPct(this._num("water_heating")), "water_heating"],
       [t.water_cooling, fmtPct(this._num("water_cooling")), "water_cooling"],
@@ -1392,18 +1372,20 @@ const STYLE = `
   svg.schema { display: block; width: 100%; height: auto; max-height: min(41.5vh, 415px); font-family: inherit; }
   .side { width: 100%; max-width: 860px; justify-self: center; }
   .ptop { display: flex; justify-content: flex-end; }
+  .ptop { margin: 8px 38px 0 0; }
   .ptop .pill { font-size: 14.4px; padding: 2.4px 11px; border-radius: 14px; }
   .wall { stroke: var(--divider-color, #666); stroke-width: 2; stroke-dasharray: 6 6; }
   .zone { fill: var(--secondary-text-color, #9b9b9b); font-size: 11px; letter-spacing: 1px; }
   .unit { fill: var(--card-background-color, #1c1c1c); stroke-width: 2; }
-  .duct { fill: none; stroke-width: 7; stroke-linecap: round; }
-  .flow { fill: none; stroke: #fff; stroke-width: 2.5; pointer-events: none; animation: flow 1.2s linear infinite; }
+  .duct { fill: none; stroke-width: 12; stroke-linecap: round; }
+  .flow { fill: none; stroke: #fff; stroke-width: 3; pointer-events: none; animation: flow 1.2s linear infinite; }
   @keyframes flow { to { stroke-dashoffset: -40; } }
   .device-label { fill: var(--primary-text-color, #e0e0e0); font-size: 11px; pointer-events: none; }
   .device-value { fill: var(--primary-text-color, #e0e0e0); font-size: 12px; font-weight: 500; pointer-events: none; }
   .filter rect { fill: var(--card-background-color, #1c1c1c); stroke: var(--secondary-text-color, #9b9b9b); stroke-width: 1.5; }
   .filter path { fill: none; stroke: var(--secondary-text-color, #9b9b9b); stroke-width: 1.2; }
-  .hex, .bypass, .fan, .heater, .chip { cursor: pointer; }
+  .hex, .bypass, .fan, .heater, .bigtemp-svg { cursor: pointer; }
+  .bigtemp-svg { font-size: 30px; font-weight: 300; }
   .hex-bg { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 2; stroke-linejoin: round; }
   .plates line { stroke: #78909c; stroke-width: 1.2; }
   .hex.on .hex-bg { stroke: #4caf50; }
@@ -1426,8 +1408,6 @@ const STYLE = `
   @keyframes spin { to { transform: rotate(360deg); } }
   .heater-box { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #888); stroke-width: 1.5; }
   .coil { fill: none; stroke-width: 2; stroke-linejoin: round; }
-  .chip rect { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #555); stroke-width: 1; }
-  .chip text { fill: var(--primary-text-color, #e1e1e1); font-size: 12px; }
   @media (prefers-reduced-motion: reduce) { .flow, .blades { animation: none !important; } }
 
   .side { display: grid; gap: 12px; align-content: start; }
@@ -1439,6 +1419,14 @@ const STYLE = `
   button.pending { opacity: 0.6; }
   .controls { display: grid; gap: 8px; }
   .crow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  /* Home: power / boost / manual-auto as large as the level buttons */
+  .pane[data-pane="home"] .crow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: stretch; }
+  .pane[data-pane="home"] .crow > .tg { justify-content: center; min-height: 58px; border-radius: 10px; font-size: 15px; }
+  .pane[data-pane="home"] .crow > .tg .ico { font-size: 20px; }
+  .pane[data-pane="home"] .crow > .seg { display: grid; grid-template-columns: 1fr 1fr; }
+  .pane[data-pane="home"] .crow > .seg button { min-height: 58px; font-size: 15px; }
+  .pane[data-pane="home"] .crow > .seg button:first-child { border-radius: 10px 0 0 10px; }
+  .pane[data-pane="home"] .crow > .seg button:last-child { border-radius: 0 10px 10px 0; }
   .lbl { color: var(--secondary-text-color, #9b9b9b); font-size: 12px; }
   .tg { display: inline-flex; align-items: center; gap: 6px; }
   .tg.on { border-color: #4caf50; color: #4caf50; background: rgba(76,175,80,.10); }
@@ -1500,10 +1488,7 @@ const STYLE = `
   .pane.two > .col { display: grid; gap: 10px; align-content: start; min-width: 0; }
   .pane.two > * { align-self: start; }
   .pane.sched { border-top: none; padding-top: 0; }
-  .home-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .bigtemp { display: flex; align-items: baseline; gap: 8px; cursor: pointer; }
-  .bigtemp span { font-size: 42px; font-weight: 300; line-height: 1; }
-  .bigtemp small, .mbtn small { color: var(--secondary-text-color, #9b9b9b); font-size: 11px; }
+  .mbtn small { color: var(--secondary-text-color, #9b9b9b); font-size: 11px; }
   .spbox { display: grid; gap: 2px; justify-items: end; }
   .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .mode { position: relative; }

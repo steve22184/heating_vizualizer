@@ -73,7 +73,7 @@ The card comes in three files in the repository root – load **exactly one** of
 
 It is a separate card in the Heating Visualizer style:
 
-- schema of the unit with animated air flow, spinning fans, counterflow plate heat exchanger with the recovery level and an on/off summer bypass (open when the recovery level is below 50 %; verify on your unit), heater glow and the supply duct colored by temperature;
+- schema of the unit with animated air flow, spinning fans, counterflow plate heat exchanger with the recovery level and an on/off summer bypass (shown open in the Summer season when the recovery level is below 50 %; verify on your unit), heater glow and the supply duct colored by temperature;
 - below it a panel modelled on the Komfovent **C4.1** touch panel, with tabs:
   - **Home** – supply temperature, setpoint, the three modes *Away / Home / Boost* (levels 1–3) with an editor for the supply/extract intensity of each mode (registers 1103–1109), power, OVR boost, manual/auto and status icons;
   - **Overview** – current alarm and warnings (0x2000 = service time), detailed values, alarm history of the last 30 days from the Home Assistant recorder;
@@ -84,7 +84,7 @@ It is a separate card in the Heating Visualizer style:
 
 Settings tab: season, schedule on/off, unit clock with sync, Modbus ID and **Check entities** – fixes entity IDs that got a `_2` suffix after migrating to the block configuration (needs an administrator user).
 
-Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.6.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
+Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.7.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
 
 ## Register reference
 
