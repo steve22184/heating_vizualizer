@@ -80,7 +80,7 @@ It is a separate card in the Heating Visualizer style:
   - **Settings** – season, schedule control, unit clock with *Sync with HA*, Modbus ID;
 - the panel sits centred below the schema and the card fits a full-height dashboard without scrolling.
 
-Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.4.0` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
+Installation: copy it to `<config>/www/`, add `/local/komfovent-card_sk.js?v=1.4.1` as a **JavaScript module** resource (raise the version with every update, the browser caches the file), reload with Ctrl+F5 and add `type: custom:komfovent-card`.
 
 ## Register reference
 

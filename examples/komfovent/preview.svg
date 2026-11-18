@@ -32,6 +32,7 @@
   .plates line { stroke: #78909c; stroke-width: 1.2; }
   .hex.on .hex-bg { stroke: #4caf50; }
   .hex.on .plates line { stroke: #4caf50; opacity: 0.8; }
+  .xpath { fill: none; stroke-width: 3; opacity: 0.55; stroke-linecap: round; pointer-events: none; }
   .hex-val-bg { fill: var(--card-background-color, #1c1c1c); }
   .bypass-duct { fill: none; stroke: var(--divider-color, #666); stroke-width: 4; stroke-linejoin: round; stroke-dasharray: 2 4; }
   .bypass.open .bypass-duct { stroke: #8fb3d9; stroke-dasharray: none; }
@@ -159,36 +160,38 @@
       <text x="100" y="52" text-anchor="end" class="zone">OUTSIDE</text>
       <text x="120" y="52" class="zone">INSIDE</text>
       <rect id="unit" x="170" y="56" width="420" height="254" rx="10" class="unit" filter="url(#glow)" style="stroke: rgb(76, 175, 80);"></rect>
-      <path id="duct0" d="M 20 120 L 263 120" class="duct" style="stroke: rgb(77, 208, 225);"></path><g id="flow0"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.44s;" d="M 20 120 L 263 120"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.44s;" d="M 20 120 L 263 120"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.44s;" d="M 20 120 L 263 120"></path></g><path id="duct1" d="M 338 120 L 736 120" class="duct" style="stroke: rgb(198, 226, 54);"></path><g id="flow1"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.44s;" d="M 338 120 L 736 120"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.44s;" d="M 338 120 L 736 120"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.44s;" d="M 338 120 L 736 120"></path></g><path id="duct2" d="M 740 250 L 338 250" class="duct" style="stroke: rgb(255, 167, 38);"></path><g id="flow2"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.5s;" d="M 740 250 L 338 250"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.5s;" d="M 740 250 L 338 250"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.5s;" d="M 740 250 L 338 250"></path></g><path id="duct3" d="M 263 250 L 16 250" class="duct" style="stroke: rgb(144, 164, 174);"></path><g id="flow3"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.5s;" d="M 263 250 L 16 250"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.5s;" d="M 263 250 L 16 250"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.5s;" d="M 263 250 L 16 250"></path></g>
-      <path id="arr0" d="M 143 113 L 155 120 L 143 127 Z" style="fill: rgb(77, 208, 225);"></path><path id="arr1" d="M 735 113 L 747 120 L 735 127 Z" style="fill: rgb(198, 226, 54);"></path><path id="arr2" d="M 657 243 L 645 250 L 657 257 Z" style="fill: rgb(255, 167, 38);"></path><path id="arr3" d="M 20 243 L 8 250 L 20 257 Z" style="fill: rgb(144, 164, 174);"></path>
-      <text x="22" y="106" class="device-label">Outdoor air</text>
-      <text x="22" y="274" class="device-label">Exhaust air</text>
-      <text x="738" y="106" text-anchor="end" class="device-label">Supply to rooms</text>
-      <text x="738" y="274" text-anchor="end" class="device-label">Extract from rooms</text>
-      <g class="filter" transform="translate(205,120) scale(1.2)">
-        <rect x="-7" y="-16" width="14" height="32" rx="2"></rect><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"></path></g><g class="filter" transform="translate(555,250) scale(1.2)">
-        <rect x="-7" y="-16" width="14" height="32" rx="2"></rect><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"></path></g>
       <g class="bypass" id="bypass" data-info="recuperator">
-        <path d="M 241 120 L 241 90 L 360 90 L 360 120" class="bypass-duct"></path>
-        <path d="M 241 120 L 241 90 L 360 90 L 360 120" class="flow bypass-flow" id="bypass-flow" style="stroke-dasharray: 6, 14; display: none;"></path>
+        <path d="M 241 120 L 241 90 L 384 90 L 384 250" class="bypass-duct"></path>
+        <path d="M 241 120 L 241 90 L 384 90 L 384 250" class="flow bypass-flow" id="bypass-flow" style="stroke-dasharray: 6, 14; display: none;"></path>
         <g transform="translate(300,90)"><circle r="3" class="damper-pin"></circle>
           <line id="damper" x1="0" y1="-11" x2="0" y2="11" class="damper" transform=""></line></g>
         <text x="300" y="77" text-anchor="middle" class="device-label" id="bypass-lbl">Bypass: closed</text>
       </g>
+      <path id="duct0" d="M 20 120 L 263 120" class="duct" style="stroke: rgb(77, 208, 225);"></path><g id="flow0"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.44s;" d="M 20 120 L 263 120"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.44s;" d="M 20 120 L 263 120"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.44s;" d="M 20 120 L 263 120"></path></g><path id="duct1" d="M 338 250 L 736 250" class="duct" style="stroke: rgb(198, 226, 54);"></path><g id="flow1"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.44s;" d="M 338 250 L 736 250"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.44s;" d="M 338 250 L 736 250"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.44s;" d="M 338 250 L 736 250"></path></g><path id="duct2" d="M 740 120 L 338 120" class="duct" style="stroke: rgb(255, 167, 38);"></path><g id="flow2"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.5s;" d="M 740 120 L 338 120"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.5s;" d="M 740 120 L 338 120"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.5s;" d="M 740 120 L 338 120"></path></g><path id="duct3" d="M 263 250 L 16 250" class="duct" style="stroke: rgb(144, 164, 174);"></path><g id="flow3"><path class="flow" style="stroke-dasharray: 16, 24; opacity: 0.15; animation-duration: 1.5s;" d="M 263 250 L 16 250"></path><path class="flow" style="stroke-dasharray: 0, 6, 10, 24; opacity: 0.35; animation-duration: 1.5s;" d="M 263 250 L 16 250"></path><path class="flow" style="stroke-dasharray: 0, 11, 5, 24; opacity: 0.85; animation-duration: 1.5s;" d="M 263 250 L 16 250"></path></g>
+      <path id="arr0" d="M 143 113 L 155 120 L 143 127 Z" style="fill: rgb(77, 208, 225);"></path><path id="arr1" d="M 735 243 L 747 250 L 735 257 Z" style="fill: rgb(198, 226, 54);"></path><path id="arr2" d="M 657 113 L 645 120 L 657 127 Z" style="fill: rgb(255, 167, 38);"></path><path id="arr3" d="M 20 243 L 8 250 L 20 257 Z" style="fill: rgb(144, 164, 174);"></path>
+      <text x="22" y="106" class="device-label">Outdoor air</text>
+      <text x="22" y="274" class="device-label">Exhaust air</text>
+      <text x="738" y="274" text-anchor="end" class="device-label">Supply to rooms</text>
+      <text x="738" y="106" text-anchor="end" class="device-label">Extract from rooms</text>
+      <g class="filter" transform="translate(205,120) scale(1.2)">
+        <rect x="-7" y="-16" width="14" height="32" rx="2"></rect><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"></path></g><g class="filter" transform="translate(555,120) scale(1.2)">
+        <rect x="-7" y="-16" width="14" height="32" rx="2"></rect><path d="M-7 -12 L7 -8 L-7 -4 L7 0 L-7 4 L7 8 L-7 12"></path></g>
       <g class="hex on" id="rotor" data-info="recuperator">
         <polygon points="230,185 265,115 335,115 370,185 335,255 265,255" class="hex-bg"></polygon>
         <g class="plates"><line x1="260.0" y1="137" x2="340.0" y2="137"></line><line x1="254.0" y1="149" x2="346.0" y2="149"></line><line x1="248.0" y1="161" x2="352.0" y2="161"></line><line x1="242.0" y1="173" x2="358.0" y2="173"></line><line x1="236.0" y1="185" x2="364.0" y2="185"></line><line x1="242.0" y1="197" x2="358.0" y2="197"></line><line x1="248.0" y1="209" x2="352.0" y2="209"></line><line x1="254.0" y1="221" x2="346.0" y2="221"></line><line x1="260.0" y1="233" x2="340.0" y2="233"></line></g>
+        <path d="M 263 120 L 338 250" class="xpath" id="xp-s" style="stroke: rgb(198, 226, 54);"></path>
+        <path d="M 338 120 L 263 250" class="xpath" id="xp-e" style="stroke: rgb(255, 167, 38);"></path>
         <rect x="276" y="173" width="48" height="22" rx="4" class="hex-val-bg"></rect>
         <text x="300" y="189" text-anchor="middle" class="device-value" id="rotor-val">85 %</text>
         <text x="300" y="271" text-anchor="middle" class="device-label">Heat recovery</text>
       </g>
-      <g class="fan on" id="fan-s" data-info="supply_fan" transform="translate(420,120)">
+      <g class="fan on" id="fan-s" data-info="supply_fan" transform="translate(430,250)">
         <circle r="24" class="fan-ring"></circle><g transform="scale(1.2)"><g class="blades" style="animation-duration: 1.2s;"><path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(0)"></path><path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(120)"></path><path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(240)"></path></g></g>
         <circle r="3.6" class="hub"></circle><text y="42" text-anchor="middle" class="device-label">Supply 50 %</text></g>
       <g class="fan on" id="fan-e" data-info="exhaust_fan" transform="translate(212,250)">
         <circle r="24" class="fan-ring"></circle><g transform="scale(1.2)"><g class="blades" style="animation-duration: 1.25s;"><path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(0)"></path><path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(120)"></path><path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(240)"></path></g></g>
         <circle r="3.6" class="hub"></circle><text y="42" text-anchor="middle" class="device-label">Exhaust 48 %</text></g>
-      <g class="heater" data-info="heater" transform="translate(500,120)">
+      <g class="heater" data-info="heater" transform="translate(510,250)">
         <rect x="-26" y="-18" width="52" height="36" rx="4" class="heater-box"></rect>
         <path id="coil" d="M-20 0 L-15 -9 L-8 9 L-1 -9 L6 9 L13 -9 L20 0" class="coil" filter="url(#heat)" style="stroke: rgb(255, 112, 67);"></path>
         <text y="38" text-anchor="middle" class="device-label" id="heater-lbl">Heater 20 %</text>

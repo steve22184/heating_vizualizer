@@ -21,7 +21,7 @@
  * Home Assistant pushes new states and the animations do not restart.
  */
 
-const VERSION = "1.4.0";
+const VERSION = "1.4.1";
 // Fixed language of this build: null = follow Home Assistant (or `language:` in the card config).
 // komfovent-card_sk.js / komfovent-card_en.js are generated from this file with "sk" / "en".
 const FORCE_LANG = "en";
@@ -912,10 +912,11 @@ class KomfoventCard extends HTMLElement {
     const edgeX = (y) => rx - hw - ((hx - hw) * Math.abs(y - 185 + (y < 185 ? hy : -hy))) / hy;
     const inL = Math.round(edgeX(yS));
     const inR = Math.round(2 * rx - edgeX(yS));
+    // cross flow: outdoor (top left) -> supply (bottom right), extract (top right) -> exhaust (bottom left)
     const ducts = [
       `M 20 ${yS} L ${inL} ${yS}`,
-      `M ${inR} ${yS} L 736 ${yS}`,
-      `M 740 ${yE} L ${inR} ${yE}`,
+      `M ${inR} ${yE} L 736 ${yE}`,
+      `M 740 ${yS} L ${inR} ${yS}`,
       `M ${inL} ${yE} L 16 ${yE}`,
     ];
     const plates = Array.from({ length: 9 }, (_, i) => {
@@ -924,7 +925,8 @@ class KomfoventCard extends HTMLElement {
       return `<line x1="${x0.toFixed(1)}" y1="${y}" x2="${(2 * rx - x0).toFixed(1)}" y2="${y}"/>`;
     }).join("");
     const byY = 90; // bypass duct height
-    const bypassD = `M ${inL - 22} ${yS} L ${inL - 22} ${byY} L ${inR + 22} ${byY} L ${inR + 22} ${yS}`;
+    const byR = rx + hx + 14; // right leg of the bypass, between exchanger and supply fan
+    const bypassD = `M ${inL - 22} ${yS} L ${inL - 22} ${byY} L ${byR} ${byY} L ${byR} ${yE}`;
     const blade = (a) => `<path d="M0 0 C 4 -6, 10 -14, 2 -16 C -4 -16, -4 -6, 0 0 Z" transform="rotate(${a})"/>`;
     const fan = (id, cx, cy, info) => `<g class="fan" id="${id}" data-info="${info}" transform="translate(${cx},${cy})">
         <circle r="24" class="fan-ring"/><g transform="scale(1.2)"><g class="blades">${blade(0)}${blade(120)}${blade(240)}</g></g>
@@ -949,13 +951,6 @@ class KomfoventCard extends HTMLElement {
       <text x="100" y="52" text-anchor="end" class="zone">${t.outside}</text>
       <text x="120" y="52" class="zone">${t.inside}</text>
       <rect id="unit" x="170" y="56" width="420" height="254" rx="10" class="unit"/>
-      ${ducts.map((d, i) => `<path id="duct${i}" d="${d}" class="duct"/>${flows(i)}`).join("")}
-      ${arrow("arr0", 150, yS, 1)}${arrow("arr1", 742, yS, 1)}${arrow("arr2", 650, yE, -1)}${arrow("arr3", 13, yE, -1)}
-      <text x="22" y="${yS - 14}" class="device-label">${t.outdoor_air}</text>
-      <text x="22" y="${yE + 24}" class="device-label">${t.exhaust_air}</text>
-      <text x="738" y="${yS - 14}" text-anchor="end" class="device-label">${t.supply_air}</text>
-      <text x="738" y="${yE + 24}" text-anchor="end" class="device-label">${t.extract_air}</text>
-      ${filter(205, yS)}${filter(555, yE)}
       <g class="bypass" id="bypass" data-info="recuperator">
         <path d="${bypassD}" class="bypass-duct"/>
         <path d="${bypassD}" class="flow bypass-flow" id="bypass-flow" style="stroke-dasharray:6 14"/>
@@ -963,16 +958,25 @@ class KomfoventCard extends HTMLElement {
           <line id="damper" x1="0" y1="-11" x2="0" y2="11" class="damper"/></g>
         <text x="${rx}" y="${byY - 13}" text-anchor="middle" class="device-label" id="bypass-lbl"></text>
       </g>
+      ${ducts.map((d, i) => `<path id="duct${i}" d="${d}" class="duct"/>${flows(i)}`).join("")}
+      ${arrow("arr0", 150, yS, 1)}${arrow("arr1", 742, yE, 1)}${arrow("arr2", 650, yS, -1)}${arrow("arr3", 13, yE, -1)}
+      <text x="22" y="${yS - 14}" class="device-label">${t.outdoor_air}</text>
+      <text x="22" y="${yE + 24}" class="device-label">${t.exhaust_air}</text>
+      <text x="738" y="${yE + 24}" text-anchor="end" class="device-label">${t.supply_air}</text>
+      <text x="738" y="${yS - 14}" text-anchor="end" class="device-label">${t.extract_air}</text>
+      ${filter(205, yS)}${filter(555, yS)}
       <g class="hex" id="rotor" data-info="recuperator">
         <polygon points="${hex.map((p) => p.join(",")).join(" ")}" class="hex-bg"/>
         <g class="plates">${plates}</g>
+        <path d="M ${inL} ${yS} L ${inR} ${yE}" class="xpath" id="xp-s"/>
+        <path d="M ${inR} ${yS} L ${inL} ${yE}" class="xpath" id="xp-e"/>
         <rect x="${rx - 24}" y="173" width="48" height="22" rx="4" class="hex-val-bg"/>
         <text x="${rx}" y="189" text-anchor="middle" class="device-value" id="rotor-val"></text>
         <text x="${rx}" y="${185 + hy + 16}" text-anchor="middle" class="device-label">${t.rotor}</text>
       </g>
-      ${fan("fan-s", 420, yS, "supply_fan")}
+      ${fan("fan-s", 430, yE, "supply_fan")}
       ${fan("fan-e", 212, yE, "exhaust_fan")}
-      <g class="heater" data-info="heater" transform="translate(500,${yS})">
+      <g class="heater" data-info="heater" transform="translate(510,${yE})">
         <rect x="-26" y="-18" width="52" height="36" rx="4" class="heater-box"/>
         <path id="coil" d="M-20 0 L-15 -9 L-8 9 L-1 -9 L6 9 L13 -9 L20 0" class="coil"/>
         <text y="38" text-anchor="middle" class="device-label" id="heater-lbl"></text>
@@ -1065,6 +1069,8 @@ class KomfoventCard extends HTMLElement {
 
     // plate exchanger + on/off bypass: recovery level below 50 % = bypass open
     const bypassOpen = running && rotor < 50;
+    this._q("#xp-s").style.stroke = supplyCol;
+    this._q("#xp-e").style.stroke = C.extract;
     this._q("#rotor").classList.toggle("on", running && rotor > 0);
     this._q("#rotor-val").textContent = `${Math.round(rotor)} %`;
     const bp = this._q("#bypass");
@@ -1237,6 +1243,7 @@ const STYLE = `
   .plates line { stroke: #78909c; stroke-width: 1.2; }
   .hex.on .hex-bg { stroke: #4caf50; }
   .hex.on .plates line { stroke: #4caf50; opacity: 0.8; }
+  .xpath { fill: none; stroke-width: 3; opacity: 0.55; stroke-linecap: round; pointer-events: none; }
   .hex-val-bg { fill: var(--card-background-color, #1c1c1c); }
   .bypass-duct { fill: none; stroke: var(--divider-color, #666); stroke-width: 4; stroke-linejoin: round; stroke-dasharray: 2 4; }
   .bypass.open .bypass-duct { stroke: #8fb3d9; stroke-dasharray: none; }
